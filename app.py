@@ -43,7 +43,7 @@ class Person(db.Model):
     psychiatrists = db.relationship(
         'Resident', backref='psychiatrist', lazy=True, foreign_keys='[Resident.psychiatrist_id]')
 
-    emergency_relationships = db.relationship('emergency_relationship', foreign_keys='[emergency_relationship.person_id]')
+    emergency_relationships = db.relationship('EmergencyRelationship', foreign_keys='[EmergencyRelationship.person_id]')
 
 
 class PhoneNumber(db.Model):
@@ -58,7 +58,7 @@ class Contributor(db.Model):
 
     role = db.Column(db.String, nullable=True)
 
-    contribution_relationships = db.relationship('contribution_relationship', foreign_keys='[contribution_relationship.contributor_id]')
+    contribution_relationships = db.relationship('ContributionRelationship', foreign_keys='[ContributionRelationship.contributor_id]')
 
 
 class HealthMutual(db.Model):
@@ -86,8 +86,8 @@ class Resident(db.Model):
     psychiatrist_id = db.Column(
         db.String, db.ForeignKey('person.id'), nullable=True)
 
-    emergency_relationships = db.relationship('emergency_relationship', foreign_keys='[emergency_relationship.resident_id]')
-    contribution_relationships = db.relationship('contribution_relationship', foreign_keys='[contribution_relationship.resident_id]')
+    emergency_relationships = db.relationship('EmergencyRelationship', foreign_keys='[EmergencyRelationship.resident_id]')
+    contribution_relationships = db.relationship('ContributionRelationship', foreign_keys='[ContributionRelationship.resident_id]')
 
 
 class EmergencyRelationship(db.Model):
