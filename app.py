@@ -13,89 +13,6 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///data.db'
 db = SQLAlchemy(app)
 
 
-class Person(db.Model):
-
-    __tablename__ = 'persons'
-
-    id = db.Column(db.String, primary_key=True)
-    first_name = db.Column(db.String, index=True, nullable=False)
-    last_name = db.Column(db.String, index=True, nullable=False)
-    address = db.Column(db.String)
-
-
-class PhoneNumber(db.Model):
-    __tablename__ = 'phone_numbers'
-
-    phone_number = db.Column(db.String, primary_key=True)
-
-    person_id = db.Column(db.String, db.ForeignKey(
-        'persons.id'), nullable=False)
-
-
-class Contributor(db.Model):
-
-    __tablename__ = 'contributors'
-
-    id = db.Column(db.String, db.ForeignKey('persons.id'), primary_key=True)
-
-    role = db.Column(db.String, nullable=True)
-
-
-class HealthMutual(db.Model):
-
-    __tablename__ = 'health_mutuals'
-
-    id = db.Column(db.String, primary_key=True)
-    name = db.Column(db.String, index=True)
-    address = db.Column(db.String, index=True)
-    phone_number = db.Column(db.String)
-
-
-class Resident(db.Model):
-
-    __tablename__ = 'residents'
-
-    id = db.Column(db.String, db.ForeignKey('persons.id'), primary_key=True)
-
-    birth_date = db.Column(db.Date)
-    birthplace = db.Column(db.String)
-    entrance_date = db.Column(db.Date)
-    emergency_bag = db.Column(db.String)
-    social_welfare_number = db.Column(db.String)
-
-    health_mutual_id = db.Column(
-        db.String, db.ForeignKey('health_mutuals.id'), nullable=True)
-    referring_doctor_id = db.Column(
-        db.String, db.ForeignKey('persons.id'), nullable=True)
-    psychiatrist_id = db.Column(
-        db.String, db.ForeignKey('persons.id'), nullable=True)
-
-    resident = db.relationship('Person', foreign_keys=[id])
-    referring_doctor = db.relationship(
-        'Person', foreign_keys=[referring_doctor_id])
-    psychiatrist = db.relationship('Person', foreign_keys=[psychiatrist_id])
-
-
-emergency_relationships = db.Table('emergency_relationships',
-                                   db.Column('resident_id', db.String, db.ForeignKey(
-                                       'residents.id'), primary_key=True),
-                                   db.Column('person_id', db.String, db.ForeignKey(
-                                       'persons.id'), primary_key=True),
-                                   db.Column('relationship',
-                                             db.String, primary_key=True)
-                                   )
-
-
-contribution_relationships = db.Table('contribution_relationships',
-                                      db.Column('resident_id', db.String, db.ForeignKey(
-                                          'residents.id'), primary_key=True),
-                                      db.Column('contributor_id', db.String, db.ForeignKey(
-                                          'contributors.id'), primary_key=True),
-                                      db.Column(
-                                          'social_advising_relationship', db.Boolean, primary_key=True)
-                                      )
-
-
 def get_random_id(size: int) -> str:
     random.seed()
     charset = string.digits + string.ascii_letters + '_'
@@ -107,6 +24,82 @@ def get_random_id(size: int) -> str:
             charset[random.randint(0, len(charset) - 1)]
 
     return generated_id
+
+
+class Person(db.Model):
+    id = db.Column(db.String, primary_key=True)
+    first_name = db.Column(db.String, index=True, nullable=False)
+    last_name = db.Column(db.String, index=True, nullable=False)
+    address = db.Column(db.String)
+
+    phone_numbers = db.relationship(
+        'PhoneNumber', backref='person', lazy=True, foreign_keys='[PhoneNumber.person_id]')
+    contributors = db.relationship(
+        'Contributor', backref='person', lazy=True, foreign_keys='[Contributor.id]')
+    residents = db.relationship(
+        'Resident', backref='person', lazy=True, foreign_keys='[Resident.id]')
+    referring_doctors = db.relationship(
+        'Resident', backref='doctor', lazy=True, foreign_keys='[Resident.referring_doctor_id]')
+    psychiatrists = db.relationship(
+        'Resident', backref='psychiatrist', lazy=True, foreign_keys='[Resident.psychiatrist_id]')
+
+    emergency_relationships = db.relationship('emergency_relationship', foreign_keys='[emergency_relationship.person_id]')
+
+
+class PhoneNumber(db.Model):
+    phone_number = db.Column(db.String, primary_key=True)
+
+    person_id = db.Column(db.String, db.ForeignKey(
+        'person.id'), nullable=False)
+
+
+class Contributor(db.Model):
+    id = db.Column(db.String, db.ForeignKey('person.id'), primary_key=True)
+
+    role = db.Column(db.String, nullable=True)
+
+    contribution_relationships = db.relationship('contribution_relationship', foreign_keys='[contribution_relationship.contributor_id]')
+
+
+class HealthMutual(db.Model):
+    id = db.Column(db.String, primary_key=True)
+    name = db.Column(db.String, index=True)
+    address = db.Column(db.String, index=True)
+    phone_number = db.Column(db.String)
+
+    residents = db.relationship('Resident', backref='health_mutual', lazy=True, foreign_keys='[Resident.health_mutual_id]')
+
+
+class Resident(db.Model):
+    id = db.Column(db.String, db.ForeignKey('person.id'), primary_key=True)
+
+    birth_date = db.Column(db.Date)
+    birthplace = db.Column(db.String)
+    entrance_date = db.Column(db.Date)
+    emergency_bag = db.Column(db.String)
+    social_welfare_number = db.Column(db.String)
+
+    health_mutual_id = db.Column(
+        db.String, db.ForeignKey('health_mutual.id'), nullable=True)
+    referring_doctor_id = db.Column(
+        db.String, db.ForeignKey('person.id'), nullable=True)
+    psychiatrist_id = db.Column(
+        db.String, db.ForeignKey('person.id'), nullable=True)
+
+    emergency_relationships = db.relationship('emergency_relationship', foreign_keys='[emergency_relationship.resident_id]')
+    contribution_relationships = db.relationship('contribution_relationship', foreign_keys='[contribution_relationship.resident_id]')
+
+
+class EmergencyRelationship(db.Model):
+    resident_id = db.Column(db.String, db.ForeignKey('resident.id'), primary_key=True)
+    person_id = db.Column(db.String, db.ForeignKey('person.id'), primary_key=True)
+    relationship = db.Column(db.String, primary_key=True)
+
+
+class ContributionRelationship(db.Model):
+    resident_id = db.Column(db.String, db.ForeignKey('resident.id'), primary_key=True)
+    contributor_id = db.Column(db.String, db.ForeignKey('contributor.id'), primary_key=True)
+    social_advising_relationship = db.Column(db.Boolean, primary_key=True)
 
 
 @app.route('/residents', methods=['GET', 'POST'])
@@ -149,12 +142,12 @@ def residents_collection():
 @app.route('/residents/<string:resident_id>', methods=['GET', 'PATCH', 'PUT', 'DELETE'])
 def resident_item(resident_id):
     if request.method == 'GET':
-        query = db.session.query(Person, Resident, PhoneNumber, HealthMutual, emergency_relationships, contribution_relationships) \
+        query = db.session.query(Person, Resident, PhoneNumber, HealthMutual, EmergencyRelationship, ContributionRelationship) \
             .filter(Person.id == resident_id) \
             .join(Resident, Resident.id == Person.id) \
             .outerjoin(PhoneNumber, PhoneNumber.person_id == Person.id) \
             .outerjoin(HealthMutual, HealthMutual.id == Resident.health_mutual_id) \
-            .outerjoin(emergency_relationships, emergency_relationships.resident_id == Resident.id) \
-            .outerjoin(contribution_relationships, contribution_relationships.resident_id == Resident.id)
+            .outerjoin(EmergencyRelationship, EmergencyRelationship.resident_id == Resident.id) \
+            .outerjoin(ContributionRelationship, ContributionRelationship.resident_id == Resident.id)
 
     return None
