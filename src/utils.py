@@ -6,7 +6,7 @@ from flask import Response
 from http import HTTPStatus
 
 
-def get_random_id(size: int) -> str:
+def random_id(size: int) -> str:
     random.seed()
     charset = string.digits + string.ascii_letters + '_'
 
@@ -19,8 +19,9 @@ def get_random_id(size: int) -> str:
     return generated_id
 
 
-def get_http_response(status_code: HTTPStatus, payload: dict) -> dict:
-    http_response = Response(json.dumps(
-        payload), status=status_code.value, mimetype='application/json')
+def http_response(status_code: HTTPStatus, payload: dict) -> Response:
+    http_response = Response(
+        json.dumps(payload),
+        status=status_code.value, mimetype='application/json')
 
     return http_response

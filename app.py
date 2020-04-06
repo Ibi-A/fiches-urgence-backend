@@ -114,9 +114,11 @@ class ContributionRelationship(db.Model):
         'contributor.id'), primary_key=True)
     social_advising = db.Column(db.Boolean, primary_key=True)
 
+##############
 
-def create_person(json_payload: dict):
-    person_id = utils.get_random_id(8)
+
+def create_person(json_payload: dict) -> dict:
+    person_id = utils.random_id(8)
 
     person = Person(
         id=person_id,
@@ -133,17 +135,17 @@ def create_person(json_payload: dict):
     if phone_numbers is not None:
         create_phone_numbers(person_id, phone_numbers)
 
-    return person_id
+    return {'id': person_id}
 
 
-def create_resident(json_payload: dict, resident_id: str = None):
-    person_id = resident_id
+def create_resident(json_payload: dict, person_id: str = None) -> dict:
+    resident_id = person_id
 
-    if person_id is None:
-        person_id = create_person(json_payload)
+    if resident_id is None:
+        resident_id = create_person(json_payload).get('id')
 
     resident = Resident(
-        id=person_id,
+        id=resident_id,
         birth_date=json_payload.get('birthDate'),
         birthplace=json_payload.get('birthplace'),
         entrance_date=json_payload.get('entranceDate'),
@@ -158,37 +160,45 @@ def create_resident(json_payload: dict, resident_id: str = None):
     db.session.add(resident)
     db.session.commit()
 
+    emergency_relationship_ids = []
+
     if json_payload.get('emergencyRelationships') is not None:
         for emergency_relationship_row in json_payload.get('emergencyRelationships'):
-            create_emergency_relationship(
-                person_id, emergency_relationship_row)
+            emergency_relationship_ids.append(create_emergency_relationship(
+                resident_id, emergency_relationship_row).get('id'))
+
+    contribution_relationship_ids = []
 
     if json_payload.get('contributionRelationships') is not None:
         for contribution_relationship_row in json_payload.get('contributionRelationships'):
-            create_contribution_relationship(
-                person_id, contribution_relationship_row)
+            contribution_relationship_ids.append(create_contribution_relationship(
+                resident_id, contribution_relationship_row).get('id'))
 
-    return person_id
+    return {
+        'id': resident_id,
+        'emergencyRelationships': emergency_relationship_ids,
+        'contributionRelationships': contribution_relationship_ids
+    }
 
 
-def create_contributor(json_payload: dict, contributor_id: str = None):
-    person_id = contributor_id
+def create_contributor(json_payload: dict, person_id: str = None) -> dict:
+    contributor_id = person_id
 
-    if person_id is None:
-        person_id = create_person(json_payload)
+    if contributor_id is None:
+        contributor_id = create_person(json_payload).get('id')
     contributor = Contributor(
-        id=person_id,
+        id=contributor_id,
         role=json_payload.get('role'),
     )
 
     db.session.add(contributor)
     db.session.commit()
 
-    return person_id
+    return {'id': contributor_id}
 
 
-def create_health_mutual(json_payload: dict):
-    health_mutual_id = utils.get_random_id(8)
+def create_health_mutual(json_payload: dict) -> dict:
+    health_mutual_id = utils.random_id(8)
 
     health_mutual = HealthMutual(
         id=health_mutual_id,
@@ -199,11 +209,11 @@ def create_health_mutual(json_payload: dict):
     db.session.add(health_mutual)
     db.session.commit()
 
-    return health_mutual_id
+    return {'id': health_mutual_id}
 
 
-def create_city(json_payload: dict):
-    city_id = utils.get_random_id(8)
+def create_city(json_payload: dict) -> dict:
+    city_id = utils.random_id(8)
 
     city = City(
         id=city_id,
@@ -214,24 +224,32 @@ def create_city(json_payload: dict):
     db.session.add(city)
     db.session.commit()
 
-    return city_id
+    return {'id': city_id}
 
 
-def create_phone_numbers(person_id: str, phone_numbers: list):
+def create_phone_numbers(person_id: str, phone_numbers: list) -> dict:
+
+    phone_numbers_ids = []
 
     for phone_number_item in phone_numbers:
-        phone_number = PhoneNumber(
-            phone_number=phone_number_item, person_id=person_id)
+        phone_number_id = utils.random_id(8)
+
+        phone_number = PhoneNumber(id=phone_number_id,
+                                   phone_number=phone_number_item,
+                                   person_id=person_id)
+
         db.session.add(phone_number)
+
+        phone_numbers_ids.append(phone_number_id)
 
     db.session.commit()
 
-    return None
+    return {"id": phone_numbers_ids}
 
 
-def create_emergency_relationship(resident_id: str, json_payload: dict):
+def create_emergency_relationship(resident_id: str, json_payload: dict) -> dict:
 
-    emergency_relationship_id = utils.get_random_id(8)
+    emergency_relationship_id = utils.random_id(8)
 
     emergency_relationship = EmergencyRelationship(id=emergency_relationship_id, resident_id=resident_id, person_id=json_payload.get(
         'personId'), relationship=json_payload.get('relationship'))
@@ -239,11 +257,11 @@ def create_emergency_relationship(resident_id: str, json_payload: dict):
     db.session.add(emergency_relationship)
     db.session.commit()
 
-    return emergency_relationship_id
+    return {'id': emergency_relationship_id}
 
 
-def create_contribution_relationship(resident_id: str, json_payload: dict):
-    contribution_relationship_id = utils.get_random_id(8)
+def create_contribution_relationship(resident_id: str, json_payload: dict) -> dict:
+    contribution_relationship_id = utils.random_id(8)
 
     contribution_relationship = ContributionRelationship(id=contribution_relationship_id, resident_id=resident_id, contributor_id=json_payload.get(
         'contributorId'), social_advising=json_payload.get('socialAdvising'))
@@ -251,133 +269,26 @@ def create_contribution_relationship(resident_id: str, json_payload: dict):
     db.session.add(contribution_relationship)
     db.session.commit()
 
-    return contribution_relationship_id
+    return {'id': contribution_relationship_id}
+
+################
 
 
-@app.route('/persons', methods=['GET', 'POST'])
-def persons_collection():
-    if request.method == 'GET':
-        return utils.get_http_response(utils.HTTPStatus.OK, get_persons())
-    elif request.method == 'POST':
-        # extract the information
-        payload = request.json
-        person_id = create_person(payload)
+def get_persons() -> list:
+    """ dict or list response """
+    result = db.session.query(
+        Person.id, Person.first_name, Person.last_name).all()
 
-    return json.dumps({'id': person_id})
+    persons_list = []
 
+    for row in result:
+        persons_list.append({
+            'id': row[0],
+            'firstName': row[1],
+            'lastName': row[2]
+        })
 
-
-@app.route('/cities', methods=['GET', 'POST'])
-def cities_collection():
-    if request.method == 'GET':
-        pass
-    elif request.method == 'POST':
-        # extract the information
-        payload = request.json
-        city_id = create_city(payload)
-
-    return json.dumps({'id': city_id})
-
-
-
-
-@app.route('/persons/<string:id>', methods=['GET'])
-def person_item(id: str):
-    if request.method == 'GET':
-        return utils.get_http_response(utils.HTTPStatus.OK, get_person(id))
-
-
-@app.route('/residents', methods=['GET', 'POST'])
-def residents_collection():
-    if request.method == 'GET':
-        pass
-    elif request.method == 'POST':
-        # extract the information
-        payload = request.json
-        resident_id = create_resident(payload)
-
-    return json.dumps({'id': resident_id})
-
-
-@app.route('/contributors', methods=['GET', 'POST'])
-def contributors_collection():
-    if request.method == 'GET':
-        pass
-    elif request.method == 'POST':
-        # extract the information
-        payload = request.json
-
-        contributor_id = create_contributor(payload)
-
-    return json.dumps({'id': contributor_id})
-
-
-@app.route('/health-mutuals', methods=['GET', 'POST'])
-def health_mutual_collection():
-    if request.method == 'GET':
-        pass
-    elif request.method == 'POST':
-        # extract the information
-        payload = request.json
-
-        health_mutual_id = create_health_mutual(payload)
-
-    return json.dumps({'id': health_mutual_id})
-
-
-@app.route('/persons/<string:id>/phone-numbers', methods=['GET, POST'])
-@app.route('/residents/<string:id>/phone-numbers', methods=['GET, POST'])
-@app.route('/contributors/<string:id>/phone-numbers', methods=['GET, POST'])
-def phone_numbers_collection(id: str):
-    if request.method == 'POST':
-        payload = request.json
-        create_phone_numbers(id, payload)
-
-    return None
-
-
-@app.route('/residents/<string:id>/emergency-relationships', methods=['GET, POST'])
-def emergency_relationships_collection(id):
-    if request.method == 'POST':
-        payload = request.json
-        create_emergency_relationship(id, payload)
-
-    return None
-
-
-@app.route('/residents/<string:id>/contribution-relationships', methods=['GET, POST'])
-def contribution_relationships_collection(id):
-    if request.method == 'POST':
-        payload = request.json
-        create_contribution_relationship(id, payload)
-
-    return None
-
-
-@app.route('/residents/<string:resident_id>', methods=['GET', 'PATCH', 'PUT', 'DELETE'])
-def resident_item(resident_id):
-    if request.method == 'GET':
-        query = db.session.query(
-            Person,
-            Resident,
-            PhoneNumber,
-            HealthMutual,
-            EmergencyRelationship,
-            ContributionRelationship) \
-            .filter(Person.id == resident_id) \
-            .join(Resident, Resident.id == Person.id) \
-            .outerjoin(PhoneNumber, PhoneNumber.person_id == Person.id) \
-            .outerjoin(HealthMutual, HealthMutual.id == Resident.health_mutual_id) \
-            .outerjoin(EmergencyRelationship, EmergencyRelationship.resident_id == Resident.id) \
-            .outerjoin(ContributionRelationship, ContributionRelationship.resident_id == Resident.id)
-
-    return json.dumps(str(query.statement))
-
-
-@app.route('/db-reset')
-def reset_db():
-    db.drop_all()
-    db.create_all()
+    return persons_list
 
 
 def get_person(person_id) -> dict:
@@ -394,23 +305,146 @@ def get_person(person_id) -> dict:
     return json_response
 
 
-def get_persons() -> list:
+def get_contributor(contributor_id) -> dict:
     """ dict or list response """
-    result = db.session.query(Person.id, Person.first_name, Person.last_name).all()
+    result = db.session.query(Contributor, Person).filter(Contributor.id == contributor_id).outerjoin(Person, Person.id == Contributor.id).one()
 
-    persons_list = []
+    json_response = {
+        'id': result.Person.id,
+        'firstName': result.Person.first_name,
+        'lastName': result.Person.last_name,
+        'address': result.Person.address,
+        'role': result.Contributor.role
+    }
+
+    return json_response
+
+
+def get_city(city_id) -> dict:
+    """ dict or list response """
+    result = db.session.query(City).get(city_id)
+
+    json_response = {
+        'id': result.id,
+        'name': result.name,
+        'postalCode': result.postal_code,
+    }
+
+    return json_response
+
+
+def get_cities() -> list:
+    """ dict or list response """
+    result = db.session.query(
+        City.id, City.name).all()
+
+    cities_list = []
 
     for row in result:
-        persons_list.append({
+        cities_list.append({
             'id': row[0],
-            'firstName': row[1],
-            'lastName': row[2]
+            'name': row[1]
         })
 
     return persons_list
 
 
-
 def get_residents() -> list:
+    pass
 
-    result = db.session.query(Person.id, Person.first_name, Person.last_name, City.id, City.name).filter()
+################
+
+
+@app.route('/persons', methods=['GET', 'POST'])
+def persons_collection() -> utils.Response:
+    if request.method == 'GET':
+        return utils.http_response(utils.HTTPStatus.OK, get_persons())
+    elif request.method == 'POST':
+        return utils.http_response(utils.HTTPStatus.CREATED, create_person(request.json))
+
+
+@app.route('/persons/<string:id>', methods=['GET'])
+def person_item(id: str) -> utils.Response:
+    if request.method == 'GET':
+        return utils.http_response(utils.HTTPStatus.OK, get_person(id))
+
+
+@app.route('/residents', methods=['POST'])
+def residents_collection() -> utils.Response:
+    if request.method == 'GET':
+        pass
+    elif request.method == 'POST':
+        return utils.http_response(utils.HTTPStatus.CREATED, create_resident(request.json))
+
+
+@app.route('/residents/<string:id>/emergency-relationships', methods=['POST'])
+def emergency_relationships_collection(id: str) -> utils.Response:
+    if request.method == 'POST':
+        return utils.http_response(utils.HTTPStatus.CREATED, create_emergency_relationship(id, request.json))
+
+
+@app.route('/residents/<string:id>/contribution-relationships', methods=['POST'])
+def contribution_relationships_collection(id: str) -> utils.Response:
+    if request.method == 'POST':
+        return utils.http_response(utils.HTTPStatus.CREATED, create_contribution_relationship(id, request.json))
+
+
+@app.route('/residents/<string:resident_id>', methods=['GET'])
+def resident_item(id: str) -> utils.Response:
+    if request.method == 'GET':
+        query = db.session.query(
+            Person,
+            Resident,
+            PhoneNumber,
+            HealthMutual,
+            EmergencyRelationship,
+            ContributionRelationship) \
+            .filter(Person.id == id) \
+            .join(Resident, Resident.id == Person.id) \
+            .outerjoin(PhoneNumber, PhoneNumber.person_id == Person.id) \
+            .outerjoin(HealthMutual, HealthMutual.id == Resident.health_mutual_id) \
+            .outerjoin(EmergencyRelationship, EmergencyRelationship.resident_id == Resident.id) \
+            .outerjoin(ContributionRelationship, ContributionRelationship.resident_id == Resident.id)
+
+    return json.dumps(str(query.statement))
+
+
+@app.route('/cities', methods=['GET', 'POST'])
+def cities_collection() -> utils.Response:
+    if request.method == 'GET':
+        return utils.http_response(utils.HTTPStatus.OK, get_cities(request.json)) 
+    if request.method == 'POST':
+        return utils.http_response(utils.HTTPStatus.CREATED, create_city(request.json))
+
+
+@app.route('/contributors', methods=['POST'])
+def contributors_collection() -> utils.Response:
+    if request.method == 'POST':
+        return utils.http_response(utils.HTTPStatus.CREATED, create_contributor(request.json))
+
+@app.route('/contributors/<string:id>', methods=['GET'])
+def contributor_item(id: str) -> utils.Response:
+    if request.method == 'GET':
+        return utils.http_response(utils.HTTPStatus.OK, get_contributor(id))
+
+
+@app.route('/health-mutuals', methods=['POST'])
+def health_mutual_collection() -> utils.Response:
+    if request.method == 'POST':
+        return utils.http_response(utils.HTTPStatus.CREATED, create_health_mutual(request.json))
+
+
+@app.route('/persons/<string:id>/phone-numbers', methods=['POST'])
+@app.route('/residents/<string:id>/phone-numbers', methods=['POST'])
+@app.route('/contributors/<string:id>/phone-numbers', methods=['POST'])
+def phone_numbers_collection(id: str) -> utils.Response:
+    if request.method == 'POST':
+        return utils.http_response(utils.HTTPStatus.CREATED, create_phone_numbers(id, request.json))
+
+
+@app.route('/db-reset', methods=['POST'])
+def reset_db() -> utils.Response:
+    db.drop_all()
+    db.create_all()
+
+    return utils.http_response(utils.HTTPStatus.NO_CONTENT, None)
