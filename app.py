@@ -350,7 +350,57 @@ def get_cities() -> list:
 
 
 def get_residents() -> list:
-    pass
+    residents_list = []
+
+    residents_info = db.session.query(Resident.id, Resident.city_id).all()
+
+    for resident_info in residents_info:
+
+        person_info = get_person(resident_info[0])
+        city_info = get_city(resident_info[1])
+
+        residents_list.append({
+            'id': resident_info[0],
+            'firstName': person_info.get('firstName'),
+            'lastName': person_info.get('lastName'),
+            'city': city_info
+        })
+
+    return residents_list
+
+
+def get_contributors() -> list:
+    contributors_list = []
+
+    contributors_info = db.session.query(Contributor.id, Contributor.role).all()
+
+    for contributor_info in contributors_info:
+
+        person_info = get_person(contributor_info[0])
+
+        contributors_list.append({
+            'id': contributor_info[0],
+            'firstName': person_info.get('firstName'),
+            'lastName': person_info.get('lastName'),
+            'role': contributor_info[1]
+        })
+
+    return contributors_list
+
+
+def get_health_mutuals() -> list:
+    """ dict or list response """
+    result = db.session.query(HealthMutual.id, HealthMutual.name).all()
+
+    health_mutuals_list = []
+
+    for row in result:
+        health_mutuals_list.append({
+            'id': row[0],
+            'name': row[1]
+        })
+
+    return health_mutuals_list
 
 ################
 
@@ -369,10 +419,10 @@ def person_item(id: str) -> utils.Response:
         return utils.http_response(utils.HTTPStatus.OK, get_person(id))
 
 
-@app.route('/residents', methods=['POST'])
+@app.route('/residents', methods=['GET', 'POST'])
 def residents_collection() -> utils.Response:
     if request.method == 'GET':
-        pass
+        return utils.http_response(utils.HTTPStatus.OK, get_residents())
     elif request.method == 'POST':
         return utils.http_response(utils.HTTPStatus.CREATED, create_resident(request.json))
 
@@ -417,10 +467,13 @@ def cities_collection() -> utils.Response:
         return utils.http_response(utils.HTTPStatus.CREATED, create_city(request.json))
 
 
-@app.route('/contributors', methods=['POST'])
+@app.route('/contributors', methods=['GET', 'POST'])
 def contributors_collection() -> utils.Response:
+    if request.method == 'GET':
+        return utils.http_response(utils.HTTPStatus.OK, get_contributors())
     if request.method == 'POST':
         return utils.http_response(utils.HTTPStatus.CREATED, create_contributor(request.json))
+
 
 @app.route('/contributors/<string:id>', methods=['GET'])
 def contributor_item(id: str) -> utils.Response:
@@ -428,9 +481,11 @@ def contributor_item(id: str) -> utils.Response:
         return utils.http_response(utils.HTTPStatus.OK, get_contributor(id))
 
 
-@app.route('/health-mutuals', methods=['POST'])
+@app.route('/health-mutuals', methods=['GET', 'POST'])
 def health_mutual_collection() -> utils.Response:
-    if request.method == 'POST':
+    if request.method == 'GET':
+        return utils.http_response(utils.HTTPStatus.CREATED, get_health_mutuals())
+    elif request.method == 'POST':
         return utils.http_response(utils.HTTPStatus.CREATED, create_health_mutual(request.json))
 
 
