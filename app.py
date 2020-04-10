@@ -116,8 +116,8 @@ def create_person(json_payload: dict) -> dict:
         id=person_id,
         first_name=json_payload.get('firstName'),
         last_name=json_payload.get('lastName'),
-        address=json_payload.get('address')
-        main_phone_number=json_payload.get('mainPhoneNumber')
+        address=json_payload.get('address'),
+        main_phone_number=json_payload.get('mainPhoneNumber'),
         alternative_phone_number=json_payload.get('alternativePhoneNumber')
     )
 
