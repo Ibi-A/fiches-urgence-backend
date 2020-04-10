@@ -17,9 +17,9 @@ class Person(db.Model):
     first_name = db.Column(db.String, index=True, nullable=False)
     last_name = db.Column(db.String, index=True, nullable=False)
     address = db.Column(db.String)
+    main_phone_number = db.Column(db.String)
+    alternative_phone_number = db.Column(db.String)
 
-    phone_numbers = db.relationship(
-        'PhoneNumber', backref='person', lazy=True, foreign_keys='[PhoneNumber.person_id]')
     contributors = db.relationship(
         'Contributor', backref='person', lazy=True, foreign_keys='[Contributor.id]')
     residents = db.relationship(
@@ -43,16 +43,6 @@ class City(db.Model):
         'Resident', backref='city', lazy=True, foreign_keys='[Resident.city_id]')
 
 
-class PhoneNumber(db.Model):
-
-    id = db.Column(db.String, primary_key=True)
-
-    phone_number = db.Column(db.String, index=True)
-
-    person_id = db.Column(db.String, db.ForeignKey(
-        'person.id'), nullable=False)
-
-
 class Contributor(db.Model):
     id = db.Column(db.String, db.ForeignKey('person.id'), primary_key=True)
 
@@ -66,7 +56,8 @@ class HealthMutual(db.Model):
     id = db.Column(db.String, primary_key=True)
     name = db.Column(db.String, index=True)
     address = db.Column(db.String, index=True)
-    phone_number = db.Column(db.String)
+    main_phone_number = db.Column(db.String)
+    alternative_phone_number = db.Column(db.String)
 
     residents = db.relationship('Resident', backref='health_mutual',
                                 lazy=True, foreign_keys='[Resident.health_mutual_id]')
@@ -126,15 +117,12 @@ def create_person(json_payload: dict) -> dict:
         first_name=json_payload.get('firstName'),
         last_name=json_payload.get('lastName'),
         address=json_payload.get('address')
+        main_phone_number=json_payload.get('mainPhoneNumber')
+        alternative_phone_number=json_payload.get('alternativePhoneNumber')
     )
 
     db.session.add(person)
     db.session.commit()
-
-    phone_numbers = json_payload.get('phoneNumbers')
-
-    if phone_numbers is not None:
-        create_phone_numbers(person_id, phone_numbers)
 
     return {'id': person_id}
 
@@ -204,7 +192,8 @@ def create_health_mutual(json_payload: dict) -> dict:
     health_mutual = HealthMutual(
         id=health_mutual_id,
         address=json_payload.get('address'),
-        phone_number=json_payload.get('phoneNumber'),
+        main_phone_number=json_payload.get('mainPhoneNumber'),
+        alternative_phone_number=json_payload.get('alternativePhoneNumber'),
     )
 
     db.session.add(health_mutual)
@@ -226,26 +215,6 @@ def create_city(json_payload: dict) -> dict:
     db.session.commit()
 
     return {'id': city_id}
-
-
-def create_phone_numbers(person_id: str, phone_numbers: list) -> dict:
-
-    phone_numbers_ids = []
-
-    for phone_number_item in phone_numbers:
-        phone_number_id = utils.random_id(8)
-
-        phone_number = PhoneNumber(id=phone_number_id,
-                                   phone_number=phone_number_item,
-                                   person_id=person_id)
-
-        db.session.add(phone_number)
-
-        phone_numbers_ids.append(phone_number_id)
-
-    db.session.commit()
-
-    return {"id": phone_numbers_ids}
 
 
 def create_emergency_relationship(resident_id: str, json_payload: dict) -> dict:
@@ -301,6 +270,8 @@ def get_person(person_id) -> dict:
         'firstName': result.first_name,
         'lastName': result.last_name,
         'address': result.address,
+        'mainPhoneNumber': result.main_phone_number,
+        'alternativePhoneNumber': result.alternative_phone_number,
     }
 
     return json_response
