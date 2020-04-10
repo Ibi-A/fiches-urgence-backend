@@ -461,14 +461,6 @@ def health_mutual_collection() -> utils.Response:
         return utils.http_response(utils.HTTPStatus.CREATED, create_health_mutual(request.json))
 
 
-@app.route('/persons/<string:id>/phone-numbers', methods=['POST'])
-@app.route('/residents/<string:id>/phone-numbers', methods=['POST'])
-@app.route('/contributors/<string:id>/phone-numbers', methods=['POST'])
-def phone_numbers_collection(id: str) -> utils.Response:
-    if request.method == 'POST':
-        return utils.http_response(utils.HTTPStatus.CREATED, create_phone_numbers(id, request.json))
-
-
 @app.route('/db-reset', methods=['POST'])
 def reset_db() -> utils.Response:
     db.drop_all()
