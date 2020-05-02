@@ -1,18 +1,48 @@
-import json
+import datetime
 import src.utils as utils
-
 from flask import Flask, request
-from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
-
+from sqlalchemy.exc import IntegrityError
+from flask_marshmallow import Marshmallow
+from marshmallow import Schema, fields, ValidationError, post_load
+from exceptions import InvalidRequestException
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///data.db'
-
+app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///data.db"
 db = SQLAlchemy(app)
-cors = CORS(app)
+ma = Marshmallow(app)
 
-class Person(db.Model):
+##### MODELS #####
+
+
+class ModelMixin(object):
+
+    def update(self: db.Model, new_values: dict) -> db.Model:
+        """Update an object with new values.
+
+        Args:
+            new_values (dict): New values to update the object with
+        Returns:
+            db.Model: the updated db.Model object
+        Raises: 
+            InvalidRequestException: If there is key 'id' in 'new_values'.
+        """
+        if new_values.get("id"):
+            raise InvalidRequestException("id cannot be updated")
+        # Keep a copy of original object in case of forced rollback
+        copy = self.__dict__.copy()
+        try:
+            for attr, value in new_values.items():
+                self.__setattr__(attr, value)
+        # In case of any exception, object is reset as before
+        except Exception as err:
+            for k, v in copy.items():
+                self.__setattr__(attr, value)
+            raise err
+        return self
+
+
+class Person(ModelMixin, db.Model):
     id = db.Column(db.String, primary_key=True)
     first_name = db.Column(db.String, index=True, nullable=False)
     last_name = db.Column(db.String, index=True, nullable=False)
@@ -33,26 +63,22 @@ class Person(db.Model):
         'EmergencyRelationship', foreign_keys='[EmergencyRelationship.person_id]')
 
 
-class City(db.Model):
+class City(ModelMixin, db.Model):
     id = db.Column(db.String, primary_key=True)
-
     name = db.Column(db.String, index=True)
     postal_code = db.Column(db.String)
-
     residents = db.relationship(
         'Resident', backref='city', lazy=True, foreign_keys='[Resident.city_id]')
 
 
-class Contributor(db.Model):
+class Contributor(ModelMixin, db.Model):
     id = db.Column(db.String, db.ForeignKey('person.id'), primary_key=True)
-
     role = db.Column(db.String, nullable=True)
-
     contribution_relationships = db.relationship(
         'ContributionRelationship', foreign_keys='[ContributionRelationship.contributor_id]')
 
 
-class HealthMutual(db.Model):
+class HealthMutual(ModelMixin, db.Model):
     id = db.Column(db.String, primary_key=True)
     name = db.Column(db.String, index=True)
     address = db.Column(db.String, index=True)
@@ -63,7 +89,7 @@ class HealthMutual(db.Model):
                                 lazy=True, foreign_keys='[Resident.health_mutual_id]')
 
 
-class Resident(db.Model):
+class Resident(ModelMixin, db.Model):
     id = db.Column(db.String, db.ForeignKey('person.id'), primary_key=True)
 
     birth_date = db.Column(db.Date)
@@ -87,378 +113,224 @@ class Resident(db.Model):
         'ContributionRelationship', foreign_keys='[ContributionRelationship.resident_id]')
 
 
-class EmergencyRelationship(db.Model):
+class EmergencyRelationship(ModelMixin, db.Model):
     id = db.Column(db.String, primary_key=True)
 
     resident_id = db.Column(db.String, db.ForeignKey(
-        'resident.id'), primary_key=True)
+        'resident.id'))
     person_id = db.Column(db.String, db.ForeignKey(
-        'person.id'), primary_key=True)
-    relationship = db.Column(db.String, primary_key=True)
+        'person.id'))
+    relationship = db.Column(db.String)
 
 
-class ContributionRelationship(db.Model):
+class ContributionRelationship(ModelMixin, db.Model):
     id = db.Column(db.String, primary_key=True)
 
     resident_id = db.Column(db.String, db.ForeignKey(
-        'resident.id'), primary_key=True)
+        'resident.id'))
     contributor_id = db.Column(db.String, db.ForeignKey(
-        'contributor.id'), primary_key=True)
-    social_advising = db.Column(db.Boolean, primary_key=True)
+        'contributor.id'))
+    social_advising = db.Column(db.Boolean)
 
-##############
+# class Author(ModelMixin, db.Model):  # type: ignore
+#     id = db.Column(db.Integer, primary_key=True)
+#     first = db.Column(db.String(80))
+#     last = db.Column(db.String(80))
 
 
-def create_person(json_payload: dict) -> dict:
-    person_id = utils.random_id(8)
+# class Quote(ModelMixin, db.Model):  # type: ignore
+#     id = db.Column(db.Integer, primary_key=True)
+#     content = db.Column(db.String, nullable=False)
+#     author_id = db.Column(db.Integer, db.ForeignKey("author.id"))
+#     author = db.relationship(
+#         "Author", backref=db.backref("quotes", lazy="dynamic"))
+#     posted_at = db.Column(db.DateTime)
 
-    person = Person(
-        id=person_id,
-        first_name=json_payload.get('firstName'),
-        last_name=json_payload.get('lastName'),
-        address=json_payload.get('address'),
-        main_phone_number=json_payload.get('mainPhoneNumber'),
-        alternative_phone_number=json_payload.get('alternativePhoneNumber')
-    )
+
+##### SCHEMAS #####
+def must_not_be_blank(data):
+    if not data:
+        raise ValidationError("Data not provided.")
+
+
+class PersonSchema(ma.SQLAlchemyAutoSchema):
+    class Meta:
+        model = Person
+
+    @post_load
+    def make_person(self, data, **kwargs):
+        return Person(**data)
+
+
+# class CitySchema(ma.SQLAlchemyAutoSchema):
+#     id = fields.Int(dump_only=True)
+#     name = fields.Str(required=True, validate=must_not_be_blank)
+#     postal_code = fields.Str()
+
+
+# class ContributorSchema(ma.SQLAlchemyAutoSchema):
+#     id = fields.Int(dump_only=True)
+#     role = fields.Str()
+
+
+# class HealthMutualSchema(ma.SQLAlchemyAutoSchema):
+#     id = fields.Int(dump_only=True)
+#     name = fields.Str(required=True, validate=must_not_be_blank)
+#     address = fields.Str()
+#     main_phone_number = fields.Str()
+#     alternative_phone_number = fields.Str()
+
+
+# class ResidentSchema(ma.SQLAlchemyAutoSchema):
+#     id = fields.Nested(PersonSchema, validate=must_not_be_blank)
+#     birth_date = fields.Date()
+#     birthplace = fields.Str()
+#     entrance_date = fields.Date()
+#     emergency_bag = fields.Str()
+#     social_welfare_number = fields.Str()
+#     city_id = fields.Nested(CitySchema)
+#     health_mutual_id = fields.Nested(HealthMutualSchema)
+#     referring_doctor_id = fields.Nested(PersonSchema)
+#     psychiatrist_id = fields.Nested(PersonSchema)
+
+
+# class EmergencyRelationshipSchema(ma.SQLAlchemyAutoSchema):
+#     id = fields.Int(dump_only=True)
+
+#     resident_id = fields.Nested(ResidentSchema)
+#     person_id = fields.Nested(PersonSchema)
+#     relationship = db.Column(db.String, primary_key=True)
+
+
+# class ContributionRelationshipSchema(ma.SQLAlchemyAutoSchema):
+#     id = db.Column(db.String, primary_key=True)
+
+#     resident_id = fields.Nested(ResidentSchema)
+#     contributor_id = fields.Nested(ContributorSchema)
+#     social_advising = fields.Bool()
+# Custom validator
+
+
+# class QuoteSchema(ma.SQLAlchemyAutoSchema):
+#     id = fields.Int(dump_only=True)
+#     author = fields.Nested(AuthorSchema, validate=must_not_be_blank)
+#     content = fields.Str(required=True, validate=must_not_be_blank)
+#     posted_at = fields.DateTime(dump_only=True)
+#     # Allow client to pass author's full name in request body
+#     # e.g. {"author': 'Tim Peters"} rather than {"first": "Tim", "last": "Peters"}
+#     @pre_load
+#     def process_author(self, data, **kwargs):
+#         author_name = data.get("author")
+#         if author_name:
+#             first, last = author_name.split(" ")
+#             author_dict = dict(first=first, last=last)
+#         else:
+#             author_dict = {}
+#         data["author"] = author_dict
+#         return data
+person_schema = PersonSchema()
+persons_schema = PersonSchema(many=True)
+# resident_schema = ResidentSchema()
+# residents_schema = ResidentSchema(many=True)
+
+##### API #####
+
+
+@app.route("/persons")
+def get_persons():
+    persons = Person.query.all()
+    # Serialize the queryset
+    result = persons_schema.dump(persons)
+    return {"persons": result}
+
+
+@app.route("/persons/<string:id>")
+def get_person(id):
+    try:
+        person = Person.query.filter_by(id=id).one()
+    except IntegrityError:
+        return {"message": "Author could not be found."}, 400
+    person_result = person_schema.dump(person)
+    return {"person": person_result}
+
+
+@app.route("/persons", methods=["POST"])
+def new_person():
+    json_data = request.get_json()
+    if not json_data:
+        return {"message": "No input data provided"}, 400
+
+    # Validate and deserialize input
+    try:
+        json_data["id"] = utils.random_id(8)
+        person = person_schema.load(json_data)
+    except ValidationError as err:
+        return err.messages, 422
 
     db.session.add(person)
     db.session.commit()
+    result = person_schema.dump(Person.query.get(person.id))
+    return {"person": result}
 
-    return {'id': person_id}
 
+@app.route("/persons/<string:id>", methods=["PUT", "PATCH"])
+def update_person(id):
+    json_data = request.get_json()
+    if not json_data:
+        return {"message": "No input data provided"}, 400
 
-def create_resident(json_payload: dict, person_id: str = None) -> dict:
-    resident_id = person_id
+    try:
+        person = Person.query.get(id)
+        person.update(json_data)
+    except ValidationError as err:
+        return err.messages, 422
 
-    if resident_id is None:
-        resident_id = create_person(json_payload).get('id')
-
-    resident = Resident(
-        id=resident_id,
-        birth_date=json_payload.get('birthDate'),
-        birthplace=json_payload.get('birthplace'),
-        entrance_date=json_payload.get('entranceDate'),
-        emergency_bag=json_payload.get('emergencyBag'),
-        social_welfare_number=json_payload.get('socialWelfareNumber'),
-        health_mutual_id=json_payload.get('healthMutualId'),
-        referring_doctor_id=json_payload.get('referringDoctorId'),
-        psychiatrist_id=json_payload.get('psychiatristId'),
-        city_id=json_payload.get('cityId'),
-    )
-
-    db.session.add(resident)
     db.session.commit()
-
-    emergency_relationship_ids = []
-
-    if json_payload.get('emergencyRelationships') is not None:
-        for emergency_relationship_row in json_payload.get('emergencyRelationships'):
-            emergency_relationship_ids.append(create_emergency_relationship(
-                resident_id, emergency_relationship_row).get('id'))
-
-    contribution_relationship_ids = []
-
-    if json_payload.get('contributionRelationships') is not None:
-        for contribution_relationship_row in json_payload.get('contributionRelationships'):
-            contribution_relationship_ids.append(create_contribution_relationship(
-                resident_id, contribution_relationship_row).get('id'))
-
-    return {
-        'id': resident_id,
-        'emergencyRelationships': emergency_relationship_ids,
-        'contributionRelationships': contribution_relationship_ids
-    }
-
-
-def create_contributor(json_payload: dict, person_id: str = None) -> dict:
-    contributor_id = person_id
-
-    if contributor_id is None:
-        contributor_id = create_person(json_payload).get('id')
-    contributor = Contributor(
-        id=contributor_id,
-        role=json_payload.get('role'),
-    )
-
-    db.session.add(contributor)
-    db.session.commit()
-
-    return {'id': contributor_id}
-
-
-def create_health_mutual(json_payload: dict) -> dict:
-    health_mutual_id = utils.random_id(8)
-
-    health_mutual = HealthMutual(
-        id=health_mutual_id,
-        address=json_payload.get('address'),
-        main_phone_number=json_payload.get('mainPhoneNumber'),
-        alternative_phone_number=json_payload.get('alternativePhoneNumber'),
-    )
-
-    db.session.add(health_mutual)
-    db.session.commit()
-
-    return {'id': health_mutual_id}
-
-
-def create_city(json_payload: dict) -> dict:
-    city_id = utils.random_id(8)
-
-    city = City(
-        id=city_id,
-        name=json_payload.get('name'),
-        postal_code=json_payload.get('postalCode'),
-    )
-
-    db.session.add(city)
-    db.session.commit()
-
-    return {'id': city_id}
-
-
-def create_emergency_relationship(resident_id: str, json_payload: dict) -> dict:
-
-    emergency_relationship_id = utils.random_id(8)
-
-    emergency_relationship = EmergencyRelationship(id=emergency_relationship_id, resident_id=resident_id, person_id=json_payload.get(
-        'personId'), relationship=json_payload.get('relationship'))
-
-    db.session.add(emergency_relationship)
-    db.session.commit()
-
-    return {'id': emergency_relationship_id}
-
-
-def create_contribution_relationship(resident_id: str, json_payload: dict) -> dict:
-    contribution_relationship_id = utils.random_id(8)
-
-    contribution_relationship = ContributionRelationship(id=contribution_relationship_id, resident_id=resident_id, contributor_id=json_payload.get(
-        'contributorId'), social_advising=json_payload.get('socialAdvising'))
-
-    db.session.add(contribution_relationship)
-    db.session.commit()
-
-    return {'id': contribution_relationship_id}
-
-################
-
-
-def get_persons() -> list:
-    """ dict or list response """
-    result = db.session.query(
-        Person.id, Person.first_name, Person.last_name).all()
-
-    persons_list = []
-
-    for row in result:
-        persons_list.append({
-            'id': row[0],
-            'firstName': row[1],
-            'lastName': row[2]
-        })
-
-    return persons_list
-
-
-def get_person(person_id) -> dict:
-    """ dict or list response """
-    result = db.session.query(Person).get(person_id)
-
-    json_response = {
-        'id': result.id,
-        'firstName': result.first_name,
-        'lastName': result.last_name,
-        'address': result.address,
-        'mainPhoneNumber': result.main_phone_number,
-        'alternativePhoneNumber': result.alternative_phone_number,
-    }
-
-    return json_response
-
-
-def get_contributor(contributor_id) -> dict:
-    """ dict or list response """
-    result = db.session.query(Contributor, Person).filter(Contributor.id == contributor_id).outerjoin(Person, Person.id == Contributor.id).one()
-
-    json_response = {
-        'id': result.Person.id,
-        'firstName': result.Person.first_name,
-        'lastName': result.Person.last_name,
-        'address': result.Person.address,
-        'role': result.Contributor.role
-    }
-
-    return json_response
-
-
-def get_city(city_id) -> dict:
-    """ dict or list response """
-    result = db.session.query(City).get(city_id)
-
-    json_response = {
-        'id': result.id,
-        'name': result.name,
-        'postalCode': result.postal_code,
-    }
-
-    return json_response
-
-
-def get_cities() -> list:
-    """ dict or list response """
-    result = db.session.query(
-        City.id, City.name).all()
-
-    cities_list = []
-
-    for row in result:
-        cities_list.append({
-            'id': row[0],
-            'name': row[1]
-        })
-
-    return persons_list
-
-
-def get_residents() -> list:
-    residents_list = []
-
-    residents_info = db.session.query(Resident.id, Resident.city_id).all()
-
-    for resident_info in residents_info:
-
-        person_info = get_person(resident_info[0])
-        city_info = get_city(resident_info[1])
-
-        residents_list.append({
-            'id': resident_info[0],
-            'firstName': person_info.get('firstName'),
-            'lastName': person_info.get('lastName'),
-            'city': city_info
-        })
-
-    return residents_list
-
-
-def get_contributors() -> list:
-    contributors_list = []
-
-    contributors_info = db.session.query(Contributor.id, Contributor.role).all()
-
-    for contributor_info in contributors_info:
-
-        person_info = get_person(contributor_info[0])
-
-        contributors_list.append({
-            'id': contributor_info[0],
-            'firstName': person_info.get('firstName'),
-            'lastName': person_info.get('lastName'),
-            'role': contributor_info[1]
-        })
-
-    return contributors_list
-
-
-def get_health_mutuals() -> list:
-    """ dict or list response """
-    result = db.session.query(HealthMutual.id, HealthMutual.name).all()
-
-    health_mutuals_list = []
-
-    for row in result:
-        health_mutuals_list.append({
-            'id': row[0],
-            'name': row[1]
-        })
-
-    return health_mutuals_list
-
-################
-
-
-@app.route('/persons', methods=['GET', 'POST'])
-def persons_collection() -> utils.Response:
-    if request.method == 'GET':
-        return utils.http_response(utils.HTTPStatus.OK, get_persons())
-    elif request.method == 'POST':
-        return utils.http_response(utils.HTTPStatus.CREATED, create_person(request.json))
-
-
-@app.route('/persons/<string:id>', methods=['GET'])
-def person_item(id: str) -> utils.Response:
-    if request.method == 'GET':
-        return utils.http_response(utils.HTTPStatus.OK, get_person(id))
-
-
-@app.route('/residents', methods=['GET', 'POST'])
-def residents_collection() -> utils.Response:
-    if request.method == 'GET':
-        return utils.http_response(utils.HTTPStatus.OK, get_residents())
-    elif request.method == 'POST':
-        return utils.http_response(utils.HTTPStatus.CREATED, create_resident(request.json))
-
-
-@app.route('/residents/<string:id>/emergency-relationships', methods=['POST'])
-def emergency_relationships_collection(id: str) -> utils.Response:
-    if request.method == 'POST':
-        return utils.http_response(utils.HTTPStatus.CREATED, create_emergency_relationship(id, request.json))
-
-
-@app.route('/residents/<string:id>/contribution-relationships', methods=['POST'])
-def contribution_relationships_collection(id: str) -> utils.Response:
-    if request.method == 'POST':
-        return utils.http_response(utils.HTTPStatus.CREATED, create_contribution_relationship(id, request.json))
-
-
-@app.route('/residents/<string:resident_id>', methods=['GET'])
-def resident_item(id: str) -> utils.Response:
-    if request.method == 'GET':
-        query = db.session.query(
-            Person,
-            Resident,
-            PhoneNumber,
-            HealthMutual,
-            EmergencyRelationship,
-            ContributionRelationship) \
-            .filter(Person.id == id) \
-            .join(Resident, Resident.id == Person.id) \
-            .outerjoin(PhoneNumber, PhoneNumber.person_id == Person.id) \
-            .outerjoin(HealthMutual, HealthMutual.id == Resident.health_mutual_id) \
-            .outerjoin(EmergencyRelationship, EmergencyRelationship.resident_id == Resident.id) \
-            .outerjoin(ContributionRelationship, ContributionRelationship.resident_id == Resident.id)
-
-    return json.dumps(str(query.statement))
-
-
-@app.route('/cities', methods=['GET', 'POST'])
-def cities_collection() -> utils.Response:
-    if request.method == 'GET':
-        return utils.http_response(utils.HTTPStatus.OK, get_cities(request.json)) 
-    if request.method == 'POST':
-        return utils.http_response(utils.HTTPStatus.CREATED, create_city(request.json))
-
-
-@app.route('/contributors', methods=['GET', 'POST'])
-def contributors_collection() -> utils.Response:
-    if request.method == 'GET':
-        return utils.http_response(utils.HTTPStatus.OK, get_contributors())
-    if request.method == 'POST':
-        return utils.http_response(utils.HTTPStatus.CREATED, create_contributor(request.json))
-
-
-@app.route('/contributors/<string:id>', methods=['GET'])
-def contributor_item(id: str) -> utils.Response:
-    if request.method == 'GET':
-        return utils.http_response(utils.HTTPStatus.OK, get_contributor(id))
-
-
-@app.route('/health-mutuals', methods=['GET', 'POST'])
-def health_mutual_collection() -> utils.Response:
-    if request.method == 'GET':
-        return utils.http_response(utils.HTTPStatus.CREATED, get_health_mutuals())
-    elif request.method == 'POST':
-        return utils.http_response(utils.HTTPStatus.CREATED, create_health_mutual(request.json))
+    result = person_schema.dump(person)
+    return {"person": result}
+
+
+# @app.route("/quotes/", methods=["GET"])
+# def get_quotes():
+#     quotes = Quote.query.all()
+#     result = quotes_schema.dump(quotes, many=True)
+#     return {"quotes": result}
+
+
+# @app.route("/quotes/<int:pk>")
+# def get_quote(pk):
+#     try:
+#         quote = Quote.query.get(pk)
+#     except IntegrityError:
+#         return {"message": "Quote could not be found."}, 400
+#     result = quote_schema.dump(quote)
+#     return {"quote": result}
+
+
+# @app.route("/quotes/", methods=["POST"])
+# def new_quote():
+#     json_data = request.get_json()
+#     if not json_data:
+#         return {"message": "No input data provided"}, 400
+#     # Validate and deserialize input
+#     try:
+#         data = quote_schema.load(json_data)
+#     except ValidationError as err:
+#         return err.messages, 422
+#     first, last = data["author"]["first"], data["author"]["last"]
+#     author = Author.query.filter_by(first=first, last=last).first()
+#     if author is None:
+#         # Create a new author
+#         author = Author(first=first, last=last)
+#         db.session.add(author)
+#     # Create new quote
+#     quote = Quote(
+#         content=data["content"], author=author, posted_at=datetime.datetime.utcnow()
+#     )
+#     db.session.add(quote)
+#     db.session.commit()
+#     result = quote_schema.dump(Quote.query.get(quote.id))
+#     return {"message": "Created new quote.", "quote": result}
 
 
 @app.route('/db-reset', methods=['POST'])
@@ -467,3 +339,8 @@ def reset_db() -> utils.Response:
     db.create_all()
 
     return utils.http_response(utils.HTTPStatus.NO_CONTENT, None)
+
+
+if __name__ == "__main__":
+    db.create_all()
+    app.run(debug=True, port=5000)
