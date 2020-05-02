@@ -28,17 +28,11 @@ class ModelMixin(object):
             InvalidRequestException: If there is key 'id' in 'new_values'.
         """
         if new_values.get("id"):
-            raise InvalidRequestException("id cannot be updated")
-        # Keep a copy of original object in case of forced rollback
-        copy = self.__dict__.copy()
-        try:
-            for attr, value in new_values.items():
-                self.__setattr__(attr, value)
-        # In case of any exception, object is reset as before
-        except Exception as err:
-            for k, v in copy.items():
-                self.__setattr__(attr, value)
-            raise err
+            raise InvalidRequestException("Forbidden to update id")
+
+        for attr, value in new_values.items():
+            self.__setattr__(attr, value)
+        
         return self
 
 
@@ -249,7 +243,7 @@ def get_person(id):
     try:
         person = Person.query.filter_by(id=id).one()
     except IntegrityError:
-        return {"message": "Author could not be found."}, 400
+        return {"message": "Person could not be found."}, 400
     person_result = person_schema.dump(person)
     return {"person": person_result}
 
@@ -275,15 +269,22 @@ def new_person():
 
 @app.route("/persons/<string:id>", methods=["PUT", "PATCH"])
 def update_person(id):
+
     json_data = request.get_json()
+
     if not json_data:
         return {"message": "No input data provided"}, 400
 
     try:
         person = Person.query.get(id)
         person.update(json_data)
+
     except ValidationError as err:
+        db.session.rollback()
         return err.messages, 422
+    except InvalidRequestException as err:
+        db.session.rollback()
+        return err.message, err.status_code
 
     db.session.commit()
     result = person_schema.dump(person)
