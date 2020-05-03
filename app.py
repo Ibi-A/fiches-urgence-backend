@@ -168,6 +168,8 @@ class ResidentSchema(SchemaMixin, ma.SQLAlchemyAutoSchema):
     class Meta:
         include_fk = True
         model = Resident
+    person = fields.Nested(PersonSchema)
+    city = fields.Nested(CitySchema)
 
 
 class EmergencyRelationshipSchema(SchemaMixin, ma.SQLAlchemyAutoSchema):
@@ -264,7 +266,6 @@ def delete_person(id):
 @app.route("/residents")
 def get_residents():
     residents = Resident.query.all()
-    # Serialize the queryset
     result = residents_schema.dump(residents)
     return {"residents": result}
 
@@ -274,8 +275,6 @@ def new_resident():
     json_data = request.get_json()
     if not json_data:
         return {"message": "No input data provided"}, 400
-
-    # Validate and deserialize input
     try:
         resident = resident_schema.load(json_data)
     except ValidationError as err:
@@ -302,6 +301,30 @@ def delete_resident(id):
     Resident.query.filter_by(id=id).delete()
     db.session.commit()
     return {"message": "Resident deleted"}, 204
+
+
+@app.route("/residents/<string:id>", methods=["PUT", "PATCH"])
+def update_resident(id):
+
+    json_data = request.get_json()
+
+    if not json_data:
+        return {"message": "No input data provided"}, 400
+
+    try:
+        resident = Resident.query.get(id)
+        resident.update(json_data)
+
+    except ValidationError as err:
+        db.session.rollback()
+        return err.messages, 422
+    except InvalidRequestException as err:
+        db.session.rollback()
+        return err.message, err.status_code
+
+    db.session.commit()
+    result = resident_schema.dump(resident)
+    return {"resident": result}
 
 
 @app.route('/db-reset', methods=['POST'])
