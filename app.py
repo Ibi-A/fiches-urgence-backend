@@ -146,7 +146,6 @@ class PersonSchema(SchemaMixin, ma.SQLAlchemyAutoSchema):
         model = Person
 
 
-
 class CitySchema(SchemaMixin, ma.SQLAlchemyAutoSchema):
     class Meta:
         include_fk = True
@@ -171,7 +170,6 @@ class ResidentSchema(SchemaMixin, ma.SQLAlchemyAutoSchema):
         model = Resident
 
 
-
 class EmergencyRelationshipSchema(SchemaMixin, ma.SQLAlchemyAutoSchema):
     class Meta:
         include_fk = True
@@ -182,6 +180,15 @@ person_schema = PersonSchema()
 persons_schema = PersonSchema(many=True)
 resident_schema = ResidentSchema()
 residents_schema = ResidentSchema(many=True)
+city_schema = CitySchema()
+cities_schema = CitySchema(many=True)
+contributor_schema = ContributorSchema()
+contributors_schema = ContributorSchema(many=True)
+health_mutual_schema = HealthMutualSchema()
+health_mutuals_schema = HealthMutualSchema(many=True)
+emergency_relationship_schema = EmergencyRelationshipSchema()
+emergency_relationships_schema = EmergencyRelationshipSchema(many=True)
+
 
 ##### API #####
 
