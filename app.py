@@ -126,99 +126,58 @@ class ContributionRelationship(ModelMixin, db.Model):
         'contributor.id'))
     social_advising = db.Column(db.Boolean)
 
-# class Author(ModelMixin, db.Model):  # type: ignore
-#     id = db.Column(db.Integer, primary_key=True)
-#     first = db.Column(db.String(80))
-#     last = db.Column(db.String(80))
-
-
-# class Quote(ModelMixin, db.Model):  # type: ignore
-#     id = db.Column(db.Integer, primary_key=True)
-#     content = db.Column(db.String, nullable=False)
-#     author_id = db.Column(db.Integer, db.ForeignKey("author.id"))
-#     author = db.relationship(
-#         "Author", backref=db.backref("quotes", lazy="dynamic"))
-#     posted_at = db.Column(db.DateTime)
-
 
 ##### SCHEMAS #####
+class SchemaMixin(object):
+    @post_load
+    def make_object(self, data, **kwargs):
+
+        return self.Meta.model(**data)
+
+
 def must_not_be_blank(data):
     if not data:
         raise ValidationError("Data not provided.")
 
 
-class PersonSchema(ma.SQLAlchemyAutoSchema):
+class PersonSchema(SchemaMixin, ma.SQLAlchemyAutoSchema):
     class Meta:
         include_fk = True
         model = Person
 
-    @post_load
-    def make_person(self, data, **kwargs):
-        return Person(**data)
 
 
-# class CitySchema(ma.SQLAlchemyAutoSchema):
-#     id = fields.Int(dump_only=True)
-#     name = fields.Str(required=True, validate=must_not_be_blank)
-#     postal_code = fields.Str()
+class CitySchema(SchemaMixin, ma.SQLAlchemyAutoSchema):
+    class Meta:
+        include_fk = True
+        model = City
 
 
-# class ContributorSchema(ma.SQLAlchemyAutoSchema):
-#     id = fields.Int(dump_only=True)
-#     role = fields.Str()
+class ContributorSchema(SchemaMixin, ma.SQLAlchemyAutoSchema):
+    class Meta:
+        include_fk = True
+        model = Contributor
 
 
-# class HealthMutualSchema(ma.SQLAlchemyAutoSchema):
-#     id = fields.Int(dump_only=True)
-#     name = fields.Str(required=True, validate=must_not_be_blank)
-#     address = fields.Str()
-#     main_phone_number = fields.Str()
-#     alternative_phone_number = fields.Str()
+class HealthMutualSchema(SchemaMixin, ma.SQLAlchemyAutoSchema):
+    class Meta:
+        include_fk = True
+        model = HealthMutual
 
 
-class ResidentSchema(ma.SQLAlchemyAutoSchema):
+class ResidentSchema(SchemaMixin, ma.SQLAlchemyAutoSchema):
     class Meta:
         include_fk = True
         model = Resident
 
-    @post_load
-    def make_resident(self, data, **kwargs):
-        return Resident(**data)
-
-# class EmergencyRelationshipSchema(ma.SQLAlchemyAutoSchema):
-#     id = fields.Int(dump_only=True)
-
-#     resident_id = fields.Nested(ResidentSchema)
-#     person_id = fields.Nested(PersonSchema)
-#     relationship = db.Column(db.String, primary_key=True)
 
 
-# class ContributionRelationshipSchema(ma.SQLAlchemyAutoSchema):
-#     id = db.Column(db.String, primary_key=True)
-
-#     resident_id = fields.Nested(ResidentSchema)
-#     contributor_id = fields.Nested(ContributorSchema)
-#     social_advising = fields.Bool()
-# Custom validator
+class EmergencyRelationshipSchema(SchemaMixin, ma.SQLAlchemyAutoSchema):
+    class Meta:
+        include_fk = True
+        model = EmergencyRelationship
 
 
-# class QuoteSchema(ma.SQLAlchemyAutoSchema):
-#     id = fields.Int(dump_only=True)
-#     author = fields.Nested(AuthorSchema, validate=must_not_be_blank)
-#     content = fields.Str(required=True, validate=must_not_be_blank)
-#     posted_at = fields.DateTime(dump_only=True)
-#     # Allow client to pass author's full name in request body
-#     # e.g. {"author': 'Tim Peters"} rather than {"first": "Tim", "last": "Peters"}
-#     @pre_load
-#     def process_author(self, data, **kwargs):
-#         author_name = data.get("author")
-#         if author_name:
-#             first, last = author_name.split(" ")
-#             author_dict = dict(first=first, last=last)
-#         else:
-#             author_dict = {}
-#         data["author"] = author_dict
-#         return data
 person_schema = PersonSchema()
 persons_schema = PersonSchema(many=True)
 resident_schema = ResidentSchema()
@@ -336,48 +295,6 @@ def delete_resident(id):
     Resident.query.filter_by(id=id).delete()
     db.session.commit()
     return {"message": "Resident deleted"}, 204
-
-# @app.route("/quotes/", methods=["GET"])
-# def get_quotes():
-#     quotes = Quote.query.all()
-#     result = quotes_schema.dump(quotes, many=True)
-#     return {"quotes": result}
-
-
-# @app.route("/quotes/<int:pk>")
-# def get_quote(pk):
-#     try:
-#         quote = Quote.query.get(pk)
-#     except IntegrityError:
-#         return {"message": "Quote could not be found."}, 400
-#     result = quote_schema.dump(quote)
-#     return {"quote": result}
-
-
-# @app.route("/quotes/", methods=["POST"])
-# def new_quote():
-#     json_data = request.get_json()
-#     if not json_data:
-#         return {"message": "No input data provided"}, 400
-#     # Validate and deserialize input
-#     try:
-#         data = quote_schema.load(json_data)
-#     except ValidationError as err:
-#         return err.messages, 422
-#     first, last = data["author"]["first"], data["author"]["last"]
-#     author = Author.query.filter_by(first=first, last=last).first()
-#     if author is None:
-#         # Create a new author
-#         author = Author(first=first, last=last)
-#         db.session.add(author)
-#     # Create new quote
-#     quote = Quote(
-#         content=data["content"], author=author, posted_at=datetime.datetime.utcnow()
-#     )
-#     db.session.add(quote)
-#     db.session.commit()
-#     result = quote_schema.dump(Quote.query.get(quote.id))
-#     return {"message": "Created new quote.", "quote": result}
 
 
 @app.route('/db-reset', methods=['POST'])
