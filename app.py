@@ -32,7 +32,7 @@ class ModelMixin(object):
 
         for attr, value in new_values.items():
             self.__setattr__(attr, value)
-        
+
         return self
 
 
@@ -290,6 +290,12 @@ def update_person(id):
     result = person_schema.dump(person)
     return {"person": result}
 
+
+@app.route("/persons/<string:id>", methods=["DELETE"])
+def delete_person(id):
+    Person.query.filter_by(id=id).delete()
+    db.session.commit()
+    return {"message": "Person deleted"}, 204
 
 # @app.route("/quotes/", methods=["GET"])
 # def get_quotes():
