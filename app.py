@@ -149,6 +149,7 @@ def must_not_be_blank(data):
 
 class PersonSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
+        include_fk = True
         model = Person
 
     @post_load
@@ -175,18 +176,14 @@ class PersonSchema(ma.SQLAlchemyAutoSchema):
 #     alternative_phone_number = fields.Str()
 
 
-# class ResidentSchema(ma.SQLAlchemyAutoSchema):
-#     id = fields.Nested(PersonSchema, validate=must_not_be_blank)
-#     birth_date = fields.Date()
-#     birthplace = fields.Str()
-#     entrance_date = fields.Date()
-#     emergency_bag = fields.Str()
-#     social_welfare_number = fields.Str()
-#     city_id = fields.Nested(CitySchema)
-#     health_mutual_id = fields.Nested(HealthMutualSchema)
-#     referring_doctor_id = fields.Nested(PersonSchema)
-#     psychiatrist_id = fields.Nested(PersonSchema)
+class ResidentSchema(ma.SQLAlchemyAutoSchema):
+    class Meta:
+        include_fk = True
+        model = Resident
 
+    @post_load
+    def make_resident(self, data, **kwargs):
+        return Resident(**data)
 
 # class EmergencyRelationshipSchema(ma.SQLAlchemyAutoSchema):
 #     id = fields.Int(dump_only=True)
@@ -224,8 +221,8 @@ class PersonSchema(ma.SQLAlchemyAutoSchema):
 #         return data
 person_schema = PersonSchema()
 persons_schema = PersonSchema(many=True)
-# resident_schema = ResidentSchema()
-# residents_schema = ResidentSchema(many=True)
+resident_schema = ResidentSchema()
+residents_schema = ResidentSchema(many=True)
 
 ##### API #####
 
@@ -296,6 +293,49 @@ def delete_person(id):
     Person.query.filter_by(id=id).delete()
     db.session.commit()
     return {"message": "Person deleted"}, 204
+
+
+@app.route("/residents")
+def get_residents():
+    residents = Resident.query.all()
+    # Serialize the queryset
+    result = residents_schema.dump(residents)
+    return {"residents": result}
+
+
+@app.route("/residents", methods=["POST"])
+def new_resident():
+    json_data = request.get_json()
+    if not json_data:
+        return {"message": "No input data provided"}, 400
+
+    # Validate and deserialize input
+    try:
+        resident = resident_schema.load(json_data)
+    except ValidationError as err:
+        return err.messages, 422
+
+    db.session.add(resident)
+    db.session.commit()
+    result = resident_schema.dump(Resident.query.get(resident.id))
+    return {"resident": result}
+
+
+@app.route("/residents/<string:id>")
+def get_resident(id):
+    try:
+        resident = Resident.query.filter_by(id=id).one()
+    except IntegrityError:
+        return {"message": "Resident could not be found."}, 400
+    resident_result = resident_schema.dump(resident)
+    return {"resident": resident_result}
+
+
+@app.route("/residents/<string:id>", methods=["DELETE"])
+def delete_resident(id):
+    Resident.query.filter_by(id=id).delete()
+    db.session.commit()
+    return {"message": "Resident deleted"}, 204
 
 # @app.route("/quotes/", methods=["GET"])
 # def get_quotes():
