@@ -326,6 +326,73 @@ def update_resident(id):
     result = resident_schema.dump(resident)
     return {"resident": result}
 
+@app.route("/cities")
+def get_cities():
+    cities = City.query.all()
+    result = cities_schema.dump(cities)
+    return {"cities": result}
+
+
+@app.route("/cities", methods=["POST"])
+def new_city():
+    json_data = request.get_json()
+    if not json_data:
+        return {"message": "No input data provided"}, 400
+    try:
+        json_data["id"] = utils.random_id(8)
+        city = city_schema.load(json_data)
+    except ValidationError as err:
+        return err.messages, 422
+
+    db.session.add(city)
+    db.session.commit()
+    result = city_schema.dump(City.query.get(city.id))
+    return {"city": result}
+
+
+@app.route("/cities/<string:id>")
+def get_city(id):
+    try:
+        city = City.query.filter_by(id=id).one()
+    except IntegrityError:
+        return {"message": "City could not be found."}, 400
+    city_result = city_schema.dump(city)
+    return {"city": city_result}
+
+
+@app.route("/cities/<string:id>", methods=["DELETE"])
+def delete_city(id):
+    City.query.filter_by(id=id).delete()
+    db.session.commit()
+    return {"message": "City deleted"}, 204
+
+
+@app.route("/cities/<string:id>", methods=["PUT", "PATCH"])
+def update_city(id):
+
+    json_data = request.get_json()
+
+    if not json_data:
+        return {"message": "No input data provided"}, 400
+
+    try:
+        city = City.query.get(id)
+        city.update(json_data)
+
+    except ValidationError as err:
+        db.session.rollback()
+        return err.messages, 422
+    except InvalidRequestException as err:
+        db.session.rollback()
+        return err.message, err.status_code
+
+    db.session.commit()
+    result = city_schema.dump(city)
+    return {"city": result}
+
+
+
+
 
 @app.route('/db-reset', methods=['POST'])
 def reset_db() -> utils.Response:
