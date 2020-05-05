@@ -1,8 +1,8 @@
 import datetime
 import src.utils as utils
-from flask import Flask, request
+from flask import Flask, request, Response
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm.exc import NoResultFound
 from flask_marshmallow import Marshmallow
 from marshmallow import Schema, fields, ValidationError, post_load
 from exceptions import InvalidRequestException
@@ -193,209 +193,202 @@ emergency_relationships_schema = EmergencyRelationshipSchema(many=True)
 
 
 ##### API #####
+def get_list_items(model: db.Model, schema: ma.SQLAlchemyAutoSchema) -> list:
+    """Get a list of rows of given 'model' in the DB and then 
+    serialize it with the given 'schema'.
+
+    Args:
+        model (db.Model): the type of rows expected
+        schema (ma.SQLAlchemyAutoSchema): the schema to serialize your model rows with
+    Returns:
+        Response: HTTP status code and list of serialized rows in JSON
+    """
+    items = model.query.all()
+    list_result = schema.dump(items)
+    return utils.http_response(utils.HTTPStatus.OK, list_result)
 
 
-@app.route("/persons")
-def get_persons():
-    persons = Person.query.all()
-    # Serialize the queryset
-    result = persons_schema.dump(persons)
-    return {"persons": result}
+def get_item_by_id(model: db.Model, schema: ma.SQLAlchemyAutoSchema, id: str) -> Response:
+    """Get a single row with given 'id' of given 'model' in the DB and then 
+    serialize it with the given 'schema'.
 
+    Args:
+        model (db.Model): the type of row expected
+        schema (ma.SQLAlchemyAutoSchema): the schema to serialize your model row with
+        id (str): the id of the row expected
 
-@app.route("/persons/<string:id>")
-def get_person(id):
+    Returns:
+        Response: HTTP status code and serialized row in JSON
+    """
     try:
-        person = Person.query.filter_by(id=id).one()
-    except IntegrityError:
-        return {"message": "Person could not be found."}, 400
-    person_result = person_schema.dump(person)
-    return {"person": person_result}
+        item = model.query.filter_by(id=id).one()
+    except NoResultFound:
+        return {"message": f"{id} could not be found."}, 404
+    item_result = schema.dump(item)
+    return utils.http_response(utils.HTTPStatus.OK, item_result)
 
 
-@app.route("/persons", methods=["POST"])
-def new_person():
+def update_item_by_id(model: db.Model, schema: ma.SQLAlchemyAutoSchema, id: str) -> Response:
+    """Update a single row with given 'id' of given 'model' in the DB and then 
+    serialize it with the given 'schema'.
+    Tipycally for PUT or PATCH API methods
+
+    Args:
+        model (db.Model): the type of row expected
+        schema (ma.SQLAlchemyAutoSchema): the schema to serialize your model row with
+        id (str): the id of the row expected to b updated
+
+    Returns:
+        Response: HTTP status code and serialized updated row in JSON
+    """
+    json_data = request.get_json()
+
+    if not json_data:
+        return {"message": "No input data provided"}, 400
+
+    try:
+        item = model.query.get(id)
+        item.update(json_data)
+
+    except ValidationError as err:
+        db.session.rollback()
+        return err.messages, 422
+    except InvalidRequestException as err:
+        db.session.rollback()
+        return err.message, err.status_code
+
+    db.session.commit()
+    item_result = schema.dump(item)
+    return utils.http_response(utils.HTTPStatus.OK, item_result)
+
+
+def delete_item_by_id(model: db.Model, id: str) -> Response:
+    """Delete a single row with given 'id' of given 'model' in the DB
+
+    Args:
+        model (db.Model): the type of row expected
+        schema (ma.SQLAlchemyAutoSchema): the schema to serialize your model row with
+        id (str): the id of the row expected
+
+    Returns:
+        Response: HTTP status code
+    """
+    model.query.filter_by(id=id).delete()
+    db.session.commit()
+    return utils.http_response(utils.HTTPStatus.NO_CONTENT, None)
+
+
+def create_new_item(
+    model: db.Model,
+    schema: ma.SQLAlchemyAutoSchema
+) -> dict:
+    """Creates a new row of given 'model' in the DB and then returns it
+    serialized 'schema'. Generates a random id when none is passed in request.
+    Tipycally for POST methods
+
+    Args:
+        model (db.Model): the type of row expected
+        schema (ma.SQLAlchemyAutoSchema): the schema to serialize your model row with
+
+    Returns:
+        dict: serialized new row in JSON
+    """
     json_data = request.get_json()
     if not json_data:
         return {"message": "No input data provided"}, 400
 
     # Validate and deserialize input
     try:
-        json_data["id"] = utils.random_id(8)
-        person = person_schema.load(json_data)
+        if not json_data.get("id"):
+            json_data["id"] = utils.random_id(8)
+        item = schema.load(json_data)
     except ValidationError as err:
         return err.messages, 422
 
-    db.session.add(person)
+    db.session.add(item)
     db.session.commit()
-    result = person_schema.dump(Person.query.get(person.id))
-    return {"person": result}
+    result = schema.dump(model.query.get(item.id))
+    return utils.http_response(utils.HTTPStatus.CREATED, result)
+
+
+@app.route("/persons")
+def get_persons():
+    return get_list_items(Person, persons_schema)
+
+
+@app.route("/persons/<string:id>")
+def get_person(id):
+    return get_item_by_id(Person, person_schema, id)
+
+
+@app.route("/persons", methods=["POST"])
+def new_person():
+    return create_new_item(Person, person_schema)
 
 
 @app.route("/persons/<string:id>", methods=["PUT", "PATCH"])
 def update_person(id):
-
-    json_data = request.get_json()
-
-    if not json_data:
-        return {"message": "No input data provided"}, 400
-
-    try:
-        person = Person.query.get(id)
-        person.update(json_data)
-
-    except ValidationError as err:
-        db.session.rollback()
-        return err.messages, 422
-    except InvalidRequestException as err:
-        db.session.rollback()
-        return err.message, err.status_code
-
-    db.session.commit()
-    result = person_schema.dump(person)
-    return {"person": result}
+    return update_item_by_id(Person, person_schema, id)
 
 
 @app.route("/persons/<string:id>", methods=["DELETE"])
 def delete_person(id):
-    Person.query.filter_by(id=id).delete()
-    db.session.commit()
-    return {"message": "Person deleted"}, 204
+    return delete_item_by_id(model, id)
 
 
 @app.route("/residents")
 def get_residents():
-    residents = Resident.query.all()
-    result = residents_schema.dump(residents)
-    return {"residents": result}
+    return get_list_items(Resident, residents_schema)
 
 
 @app.route("/residents", methods=["POST"])
 def new_resident():
-    json_data = request.get_json()
-    if not json_data:
-        return {"message": "No input data provided"}, 400
-    try:
-        resident = resident_schema.load(json_data)
-    except ValidationError as err:
-        return err.messages, 422
-
-    db.session.add(resident)
-    db.session.commit()
-    result = resident_schema.dump(Resident.query.get(resident.id))
-    return {"resident": result}
+    return create_new_item(Resident, resident_schema)
 
 
 @app.route("/residents/<string:id>")
 def get_resident(id):
-    try:
-        resident = Resident.query.filter_by(id=id).one()
-    except IntegrityError:
-        return {"message": "Resident could not be found."}, 400
-    resident_result = resident_schema.dump(resident)
-    return {"resident": resident_result}
+    return get_item_by_id(Resident, resident_schema, id)
 
 
 @app.route("/residents/<string:id>", methods=["DELETE"])
 def delete_resident(id):
-    Resident.query.filter_by(id=id).delete()
-    db.session.commit()
-    return {"message": "Resident deleted"}, 204
+    return delete_item_by_id(Resident, id)
 
 
 @app.route("/residents/<string:id>", methods=["PUT", "PATCH"])
 def update_resident(id):
+    return update_item_by_id(Resident, resident_schema, id)
 
-    json_data = request.get_json()
-
-    if not json_data:
-        return {"message": "No input data provided"}, 400
-
-    try:
-        resident = Resident.query.get(id)
-        resident.update(json_data)
-
-    except ValidationError as err:
-        db.session.rollback()
-        return err.messages, 422
-    except InvalidRequestException as err:
-        db.session.rollback()
-        return err.message, err.status_code
-
-    db.session.commit()
-    result = resident_schema.dump(resident)
-    return {"resident": result}
 
 @app.route("/cities")
 def get_cities():
-    cities = City.query.all()
-    result = cities_schema.dump(cities)
-    return {"cities": result}
+    return get_list_items(City, cities_schema)
 
 
 @app.route("/cities", methods=["POST"])
 def new_city():
-    json_data = request.get_json()
-    if not json_data:
-        return {"message": "No input data provided"}, 400
-    try:
-        json_data["id"] = utils.random_id(8)
-        city = city_schema.load(json_data)
-    except ValidationError as err:
-        return err.messages, 422
-
-    db.session.add(city)
-    db.session.commit()
-    result = city_schema.dump(City.query.get(city.id))
-    return {"city": result}
+    return create_new_item(City, city_schema)
 
 
 @app.route("/cities/<string:id>")
 def get_city(id):
-    try:
-        city = City.query.filter_by(id=id).one()
-    except IntegrityError:
-        return {"message": "City could not be found."}, 400
-    city_result = city_schema.dump(city)
-    return {"city": city_result}
+    return get_item_by_id(City, city_schema, id)
 
 
 @app.route("/cities/<string:id>", methods=["DELETE"])
 def delete_city(id):
-    City.query.filter_by(id=id).delete()
-    db.session.commit()
-    return {"message": "City deleted"}, 204
+    return delete_item_by_id(City, id)
 
 
 @app.route("/cities/<string:id>", methods=["PUT", "PATCH"])
 def update_city(id):
-
-    json_data = request.get_json()
-
-    if not json_data:
-        return {"message": "No input data provided"}, 400
-
-    try:
-        city = City.query.get(id)
-        city.update(json_data)
-
-    except ValidationError as err:
-        db.session.rollback()
-        return err.messages, 422
-    except InvalidRequestException as err:
-        db.session.rollback()
-        return err.message, err.status_code
-
-    db.session.commit()
-    result = city_schema.dump(city)
-    return {"city": result}
-
-
-
+    return update_item_by_id(City, city_schema, id)
 
 
 @app.route('/db-reset', methods=['POST'])
 def reset_db() -> utils.Response:
+    """ Reset database """
     db.drop_all()
     db.create_all()
 
