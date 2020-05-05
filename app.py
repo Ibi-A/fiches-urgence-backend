@@ -247,7 +247,7 @@ def update_item_by_id(model: db.Model, schema: ma.SQLAlchemyAutoSchema, id: str)
         return {"message": "No input data provided"}, 400
 
     try:
-        item = model.query.get(id)
+        item = model.query.get(id: str)
         item.update(json_data)
 
     except ValidationError as err:
@@ -312,78 +312,128 @@ def create_new_item(
 
 
 @app.route("/persons")
-def get_persons():
+def get_persons() -> utils.Response:
     return get_list_items(Person, persons_schema)
 
 
 @app.route("/persons/<string:id>")
-def get_person(id):
+def get_person(id: str) -> utils.Response:
     return get_item_by_id(Person, person_schema, id)
 
 
 @app.route("/persons", methods=["POST"])
-def new_person():
+def new_person() -> utils.Response:
     return create_new_item(Person, person_schema)
 
 
 @app.route("/persons/<string:id>", methods=["PUT", "PATCH"])
-def update_person(id):
+def update_person(id: str) -> utils.Response:
     return update_item_by_id(Person, person_schema, id)
 
 
 @app.route("/persons/<string:id>", methods=["DELETE"])
-def delete_person(id):
+def delete_person(id: str) -> utils.Response:
     return delete_item_by_id(model, id)
 
 
 @app.route("/residents")
-def get_residents():
+def get_residents() -> utils.Response:
     return get_list_items(Resident, residents_schema)
 
 
 @app.route("/residents", methods=["POST"])
-def new_resident():
+def new_resident() -> utils.Response:
     return create_new_item(Resident, resident_schema)
 
 
 @app.route("/residents/<string:id>")
-def get_resident(id):
+def get_resident(id: str) -> utils.Response:
     return get_item_by_id(Resident, resident_schema, id)
 
 
 @app.route("/residents/<string:id>", methods=["DELETE"])
-def delete_resident(id):
+def delete_resident(id: str) -> utils.Response:
     return delete_item_by_id(Resident, id)
 
 
 @app.route("/residents/<string:id>", methods=["PUT", "PATCH"])
-def update_resident(id):
+def update_resident(id: str) -> utils.Response:
     return update_item_by_id(Resident, resident_schema, id)
 
 
 @app.route("/cities")
-def get_cities():
+def get_cities() -> utils.Response:
     return get_list_items(City, cities_schema)
 
 
 @app.route("/cities", methods=["POST"])
-def new_city():
+def new_city() -> utils.Response:
     return create_new_item(City, city_schema)
 
 
 @app.route("/cities/<string:id>")
-def get_city(id):
+def get_city(id: str) -> utils.Response:
     return get_item_by_id(City, city_schema, id)
 
 
 @app.route("/cities/<string:id>", methods=["DELETE"])
-def delete_city(id):
+def delete_city(id: str) -> utils.Response:
     return delete_item_by_id(City, id)
 
 
 @app.route("/cities/<string:id>", methods=["PUT", "PATCH"])
-def update_city(id):
+def update_city(id: str) -> utils.Response:
     return update_item_by_id(City, city_schema, id)
+
+
+@app.route("/contributors")
+def get_contributors() -> utils.Response:
+    return get_list_items(Contributor, contributors_schema)
+
+
+@app.route("/contributors/<string:id>")
+def get_contributor(id: str) -> utils.Response:
+    return get_item_by_id(Contributor, contributor_schema, id)
+
+
+@app.route("/contributors", methods=["POST"])
+def new_contributor() -> utils.Response:
+    return create_new_item(Contributor, contributor_schema)
+
+
+@app.route("/contributors/<string:id>", methods=["PUT", "PATCH"])
+def update_contributor(id: str) -> utils.Response:
+    return update_item_by_id(Contributor, contributor_schema, id)
+
+
+@app.route("/contributors/<string:id>", methods=["DELETE"])
+def delete_contributor(id: str) -> utils.Response:
+    return delete_item_by_id(Contributor, id)
+
+
+@app.route("/health_mutuals")
+def get_health_mutuals() -> utils.Response:
+    return get_list_items(HealthMutual, health_mutuals_schema)
+
+
+@app.route("/health_mutuals/<string:id>")
+def get_health_mutual(id: str) -> utils.Response:
+    return get_item_by_id(HealthMutual, health_mutual_schema, id)
+
+
+@app.route("/health_mutuals", methods=["POST"])
+def new_health_mutual() -> utils.Response:
+    return create_new_item(HealthMutual, health_mutual_schema)
+
+
+@app.route("/health_mutuals/<string:id>", methods=["PUT", "PATCH"])
+def update_health_mutual(id: str) -> utils.Response:
+    return update_item_by_id(HealthMutual, health_mutual_schema, id)
+
+
+@app.route("/health_mutuals/<string:id>", methods=["DELETE"])
+def delete_health_mutual(id: str) -> utils.Response:
+    return delete_item_by_id(HealthMutual, id)
 
 
 @app.route('/db-reset', methods=['POST'])
