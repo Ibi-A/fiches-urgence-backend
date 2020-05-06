@@ -125,6 +125,8 @@ class ContributionRelationship(ModelMixin, db.Model):
         'resident.id'))
 
 ##### SCHEMAS #####
+
+
 class SchemaMixin(object):
     @post_load
     def make_object(self, data, **kwargs):
@@ -167,6 +169,9 @@ class ResidentSchema(SchemaMixin, ma.SQLAlchemyAutoSchema):
         model = Resident
     person = fields.Nested(PersonSchema)
     city = fields.Nested(CitySchema)
+    health_mutual = fields.Nested(HealthMutualSchema)
+    doctor = fields.Nested(PersonSchema)
+    psychiatrist = fields.Nested(PersonSchema)
 
 
 class EmergencyRelationshipSchema(SchemaMixin, ma.SQLAlchemyAutoSchema):
@@ -474,7 +479,8 @@ def update_emergency_relationship(id: str, er_id: str) -> utils.Response:
 
 @app.route('/residents/<string:id>/contribution-relationships')
 def contribution_relationships_collection(id: str) -> utils.Response:
-    er_collection = ContributionRelationship.query.filter_by(resident_id=id).all()
+    er_collection = ContributionRelationship.query.filter_by(
+        resident_id=id).all()
     list_result = contribution_relationships_schema.dump(er_collection)
     return utils.http_response(utils.HTTPStatus.OK, list_result)
 
