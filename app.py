@@ -3,6 +3,7 @@ import src.utils as utils
 from flask import Flask, request, Response
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm.exc import NoResultFound
+from sqlalchemy import PrimaryKeyConstraint
 from flask_marshmallow import Marshmallow
 from marshmallow import Schema, fields, ValidationError, post_load
 from exceptions import InvalidRequestException
@@ -110,22 +111,18 @@ class Resident(ModelMixin, db.Model):
 class EmergencyRelationship(ModelMixin, db.Model):
     id = db.Column(db.String, primary_key=True)
 
-    resident_id = db.Column(db.String, db.ForeignKey(
-        'resident.id'))
-    person_id = db.Column(db.String, db.ForeignKey(
-        'person.id'))
+    resident_id = db.Column(db.String, db.ForeignKey('resident.id'))
+    person_id = db.Column(db.String, db.ForeignKey('person.id'))
     relationship = db.Column(db.String)
 
 
 class ContributionRelationship(ModelMixin, db.Model):
     id = db.Column(db.String, primary_key=True)
-
-    resident_id = db.Column(db.String, db.ForeignKey(
-        'resident.id'))
     contributor_id = db.Column(db.String, db.ForeignKey(
         'contributor.id'))
     social_advising = db.Column(db.Boolean)
-
+    resident_id = db.Column(db.String, db.ForeignKey(
+        'resident.id'))
 
 ##### SCHEMAS #####
 class SchemaMixin(object):
@@ -178,6 +175,12 @@ class EmergencyRelationshipSchema(SchemaMixin, ma.SQLAlchemyAutoSchema):
         model = EmergencyRelationship
 
 
+class ContributionRelationshipSchema(SchemaMixin, ma.SQLAlchemyAutoSchema):
+    class Meta:
+        include_fk = True
+        model = ContributionRelationship
+
+
 person_schema = PersonSchema()
 persons_schema = PersonSchema(many=True)
 resident_schema = ResidentSchema()
@@ -190,10 +193,12 @@ health_mutual_schema = HealthMutualSchema()
 health_mutuals_schema = HealthMutualSchema(many=True)
 emergency_relationship_schema = EmergencyRelationshipSchema()
 emergency_relationships_schema = EmergencyRelationshipSchema(many=True)
+contribution_relationship_schema = ContributionRelationshipSchema()
+contribution_relationships_schema = ContributionRelationshipSchema(many=True)
 
 
 ##### API #####
-def get_list_items(model: db.Model, schema: ma.SQLAlchemyAutoSchema) -> list:
+def get_collection(model: db.Model, schema: ma.SQLAlchemyAutoSchema) -> list:
     """Get a list of rows of given 'model' in the DB and then 
     serialize it with the given 'schema'.
 
@@ -241,14 +246,14 @@ def update_item_by_id(model: db.Model, schema: ma.SQLAlchemyAutoSchema, id: str)
     Returns:
         Response: HTTP status code and serialized updated row in JSON
     """
-    json_data = request.get_json()
+    payload = request.get_json()
 
-    if not json_data:
+    if not payload:
         return {"message": "No input data provided"}, 400
 
     try:
-        item = model.query.get(id: str)
-        item.update(json_data)
+        item = model.query.get(id)
+        item.update(payload)
 
     except ValidationError as err:
         db.session.rollback()
@@ -280,7 +285,8 @@ def delete_item_by_id(model: db.Model, id: str) -> Response:
 
 def create_new_item(
     model: db.Model,
-    schema: ma.SQLAlchemyAutoSchema
+    schema: ma.SQLAlchemyAutoSchema,
+    payload: dict = None
 ) -> dict:
     """Creates a new row of given 'model' in the DB and then returns it
     serialized 'schema'. Generates a random id when none is passed in request.
@@ -289,19 +295,25 @@ def create_new_item(
     Args:
         model (db.Model): the type of row expected
         schema (ma.SQLAlchemyAutoSchema): the schema to serialize your model row with
-
+        payload (dict, optional): Attributes and values used to create the item
+            Defaults to None, in that case the payload will be the parameters 
+            passed through the request 
     Returns:
         dict: serialized new row in JSON
     """
-    json_data = request.get_json()
-    if not json_data:
-        return {"message": "No input data provided"}, 400
 
-    # Validate and deserialize input
     try:
-        if not json_data.get("id"):
-            json_data["id"] = utils.random_id(8)
-        item = schema.load(json_data)
+        if not payload:
+            payload = request.get_json()
+
+            if not payload:
+                return {"message": "No input data provided"}, 400
+
+        if not payload.get("id"):
+            payload["id"] = utils.random_id(8)
+
+        # Validate and deserialize input
+        item = schema.load(payload)
     except ValidationError as err:
         return err.messages, 422
 
@@ -312,8 +324,8 @@ def create_new_item(
 
 
 @app.route("/persons")
-def get_persons() -> utils.Response:
-    return get_list_items(Person, persons_schema)
+def get_person_collection() -> utils.Response:
+    return get_collection(Person, persons_schema)
 
 
 @app.route("/persons/<string:id>")
@@ -337,8 +349,8 @@ def delete_person(id: str) -> utils.Response:
 
 
 @app.route("/residents")
-def get_residents() -> utils.Response:
-    return get_list_items(Resident, residents_schema)
+def get_resident_collection() -> utils.Response:
+    return get_collection(Resident, residents_schema)
 
 
 @app.route("/residents", methods=["POST"])
@@ -362,8 +374,8 @@ def update_resident(id: str) -> utils.Response:
 
 
 @app.route("/cities")
-def get_cities() -> utils.Response:
-    return get_list_items(City, cities_schema)
+def get_citie_collection() -> utils.Response:
+    return get_collection(City, cities_schema)
 
 
 @app.route("/cities", methods=["POST"])
@@ -387,8 +399,8 @@ def update_city(id: str) -> utils.Response:
 
 
 @app.route("/contributors")
-def get_contributors() -> utils.Response:
-    return get_list_items(Contributor, contributors_schema)
+def get_contributor_collection() -> utils.Response:
+    return get_collection(Contributor, contributors_schema)
 
 
 @app.route("/contributors/<string:id>")
@@ -411,29 +423,81 @@ def delete_contributor(id: str) -> utils.Response:
     return delete_item_by_id(Contributor, id)
 
 
-@app.route("/health_mutuals")
-def get_health_mutuals() -> utils.Response:
-    return get_list_items(HealthMutual, health_mutuals_schema)
+@app.route("/health-mutuals")
+def get_health_mutual_collection() -> utils.Response:
+    return get_collection(HealthMutual, health_mutuals_schema)
 
 
-@app.route("/health_mutuals/<string:id>")
+@app.route("/health-mutuals/<string:id>")
 def get_health_mutual(id: str) -> utils.Response:
     return get_item_by_id(HealthMutual, health_mutual_schema, id)
 
 
-@app.route("/health_mutuals", methods=["POST"])
+@app.route("/health-mutuals", methods=["POST"])
 def new_health_mutual() -> utils.Response:
     return create_new_item(HealthMutual, health_mutual_schema)
 
 
-@app.route("/health_mutuals/<string:id>", methods=["PUT", "PATCH"])
+@app.route("/health-mutuals/<string:id>", methods=["PUT", "PATCH"])
 def update_health_mutual(id: str) -> utils.Response:
     return update_item_by_id(HealthMutual, health_mutual_schema, id)
 
 
-@app.route("/health_mutuals/<string:id>", methods=["DELETE"])
+@app.route("/health-mutuals/<string:id>", methods=["DELETE"])
 def delete_health_mutual(id: str) -> utils.Response:
     return delete_item_by_id(HealthMutual, id)
+
+
+@app.route('/residents/<string:id>/emergency-relationships')
+def emergency_relationships_collection(id: str) -> utils.Response:
+    er_collection = EmergencyRelationship.query.filter_by(resident_id=id).all()
+    list_result = emergency_relationships_schema.dump(er_collection)
+    return utils.http_response(utils.HTTPStatus.OK, list_result)
+
+
+@app.route('/residents/<string:id>/emergency-relationships', methods=['POST'])
+def new_emergency_relationship(id: str) -> utils.Response:
+    payload = request.get_json()
+    payload["resident_id"] = id
+    return create_new_item(EmergencyRelationship, emergency_relationship_schema, payload)
+
+
+@app.route('/residents/<string:id>/emergency-relationships/<string:er_id>')
+def emergency_relationship_item(id: str, er_id: str) -> utils.Response:
+    return get_item_by_id(EmergencyRelationship, emergency_relationship_schema, er_id)
+
+
+@app.route('/residents/<string:id>/emergency-relationships/<string:er_id>', methods=["PUT", "PATCH"])
+def update_emergency_relationship(id: str, er_id: str) -> utils.Response:
+    return update_item_by_id(EmergencyRelationship, emergency_relationship_schema, er_id)
+
+
+@app.route('/residents/<string:id>/contribution-relationships')
+def contribution_relationships_collection(id: str) -> utils.Response:
+    er_collection = ContributionRelationship.query.filter_by(resident_id=id).all()
+    list_result = contribution_relationships_schema.dump(er_collection)
+    return utils.http_response(utils.HTTPStatus.OK, list_result)
+
+
+@app.route('/residents/<string:id>/contribution-relationships', methods=['POST'])
+def new_contribution_relationship(id: str) -> utils.Response:
+    payload = request.get_json()
+    payload["resident_id"] = id
+    return create_new_item(ContributionRelationship, contribution_relationship_schema, payload)
+
+
+@app.route('/residents/<string:id>/contribution-relationships/<string:er_id>')
+def contribution_relationship_item(id: str, er_id: str) -> utils.Response:
+    return get_item_by_id(ContributionRelationship, contribution_relationship_schema, er_id)
+
+
+@app.route('/residents/<string:id>/contribution-relationships/<string:er_id>', methods=["PUT", "PATCH"])
+def update_contribution_relationship(id: str, er_id: str) -> utils.Response:
+    return update_item_by_id(
+        ContributionRelationship,
+        contribution_relationship_schema,
+        er_id
+    )
 
 
 @app.route('/db-reset', methods=['POST'])
