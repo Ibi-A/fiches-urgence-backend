@@ -2,6 +2,7 @@ import datetime
 import src.utils as utils
 from flask import Flask, request, Response
 from flask_sqlalchemy import SQLAlchemy
+from flask_cors import CORS
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy import PrimaryKeyConstraint
 from flask_marshmallow import Marshmallow
@@ -10,6 +11,7 @@ from exceptions import InvalidRequestException
 
 app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///data.db"
+cors = CORS(app)
 db = SQLAlchemy(app)
 ma = Marshmallow(app)
 
@@ -44,23 +46,23 @@ class ModelMixin(object):
 
 class Person(ModelMixin, db.Model):
     id = db.Column(db.String, primary_key=True)
-    first_name = db.Column(db.String, index=True, nullable=False)
-    last_name = db.Column(db.String, index=True, nullable=False)
+    firstName = db.Column(db.String, index=True, nullable=False)
+    lastName = db.Column(db.String, index=True, nullable=False)
     address = db.Column(db.String)
-    main_phone_number = db.Column(db.String)
-    alternative_phone_number = db.Column(db.String)
+    mainPhoneNumber = db.Column(db.String)
+    alternativePhoneNumber = db.Column(db.String)
 
     contributors = db.relationship(
         'Contributor', backref='person', lazy=True, foreign_keys='[Contributor.id]')
     residents = db.relationship(
         'Resident', backref='person', lazy=True, foreign_keys='[Resident.id]')
-    referring_doctors = db.relationship(
-        'Resident', backref='doctor', lazy=True, foreign_keys='[Resident.referring_doctor_id]')
+    referringDoctors = db.relationship(
+        'Resident', backref='doctor', lazy=True, foreign_keys='[Resident.referringDoctorId]')
     psychiatrists = db.relationship(
         'Resident', backref='psychiatrist', lazy=True, foreign_keys='[Resident.psychiatrist_id]')
 
-    emergency_relationships = db.relationship(
-        'EmergencyRelationship', foreign_keys='[EmergencyRelationship.person_id]')
+    emergencyRelationships = db.relationship(
+        'EmergencyRelationship', foreign_keys='[EmergencyRelationship.personId]')
 
 
 class City(ModelMixin, db.Model):
@@ -68,65 +70,64 @@ class City(ModelMixin, db.Model):
     name = db.Column(db.String, index=True)
     postal_code = db.Column(db.String)
     residents = db.relationship(
-        'Resident', backref='city', lazy=True, foreign_keys='[Resident.city_id]')
+        'Resident', backref='city', lazy=True, foreign_keys='[Resident.cityId]')
 
 
 class Contributor(ModelMixin, db.Model):
     id = db.Column(db.String, db.ForeignKey('person.id'), primary_key=True)
     role = db.Column(db.String, nullable=True)
-    contribution_relationships = db.relationship(
-        'ContributionRelationship', foreign_keys='[ContributionRelationship.contributor_id]')
+    contributionRelationships = db.relationship(
+        'ContributionRelationship', foreign_keys='[ContributionRelationship.contributorId]')
 
 
 class HealthMutual(ModelMixin, db.Model):
     id = db.Column(db.String, primary_key=True)
     name = db.Column(db.String, index=True)
     address = db.Column(db.String, index=True)
-    main_phone_number = db.Column(db.String)
-    alternative_phone_number = db.Column(db.String)
+    mainPhoneNumber = db.Column(db.String)
+    alternativePhoneNumber = db.Column(db.String)
 
     residents = db.relationship('Resident', backref='health_mutual',
-                                lazy=True, foreign_keys='[Resident.health_mutual_id]')
+                                lazy=True, foreign_keys='[Resident.healthMutualId]')
 
 
 class Resident(ModelMixin, db.Model):
     id = db.Column(db.String, db.ForeignKey('person.id'), primary_key=True)
 
-    birth_date = db.Column(db.Date)
+    birthDate = db.Column(db.Date)
     birthplace = db.Column(db.String)
-    entrance_date = db.Column(db.Date)
-    emergency_bag = db.Column(db.String)
-    social_welfare_number = db.Column(db.String)
+    entranceDate = db.Column(db.Date)
+    emergencyBag = db.Column(db.String)
+    socialWelfareNumber = db.Column(db.String)
 
-    city_id = db.Column(
+    cityId = db.Column(
         db.String, db.ForeignKey('city.id'), nullable=True)
-    health_mutual_id = db.Column(
+    healthMutualId = db.Column(
         db.String, db.ForeignKey('health_mutual.id'), nullable=True)
-    referring_doctor_id = db.Column(
+    referringDoctorId = db.Column(
         db.String, db.ForeignKey('person.id'), nullable=True)
     psychiatrist_id = db.Column(
         db.String, db.ForeignKey('person.id'), nullable=True)
 
-    emergency_relationships = db.relationship(
-        'EmergencyRelationship', foreign_keys='[EmergencyRelationship.resident_id]')
-    contribution_relationships = db.relationship(
-        'ContributionRelationship', foreign_keys='[ContributionRelationship.resident_id]')
+    emergencyRelationships = db.relationship(
+        'EmergencyRelationship', foreign_keys='[EmergencyRelationship.residentId]')
+    contributionRelationships = db.relationship(
+        'ContributionRelationship', foreign_keys='[ContributionRelationship.residentId]')
 
 
 class EmergencyRelationship(ModelMixin, db.Model):
     id = db.Column(db.String, primary_key=True)
-
-    resident_id = db.Column(db.String, db.ForeignKey('resident.id'))
-    person_id = db.Column(db.String, db.ForeignKey('person.id'))
+    residentId = db.Column(db.String, db.ForeignKey('resident.id'))
+    personId = db.Column(db.String, db.ForeignKey('person.id'))
     relationship = db.Column(db.String)
 
 
 class ContributionRelationship(ModelMixin, db.Model):
     id = db.Column(db.String, primary_key=True)
-    contributor_id = db.Column(db.String, db.ForeignKey(
+    contributorId = db.Column(db.String, db.ForeignKey(
         'contributor.id'))
-    social_advising = db.Column(db.Boolean)
-    resident_id = db.Column(db.String, db.ForeignKey(
+    socialAdvising = db.Column(db.Boolean)
+    residentId = db.Column(db.String, db.ForeignKey(
         'resident.id'))
 
 
@@ -207,9 +208,9 @@ contributors_schema = ContributorSchema(many=True)
 health_mutual_schema = HealthMutualSchema()
 health_mutuals_schema = HealthMutualSchema(many=True)
 emergency_relationship_schema = EmergencyRelationshipSchema()
-emergency_relationships_schema = EmergencyRelationshipSchema(many=True)
+emergencyRelationships_schema = EmergencyRelationshipSchema(many=True)
 contribution_relationship_schema = ContributionRelationshipSchema()
-contribution_relationships_schema = ContributionRelationshipSchema(many=True)
+contributionRelationships_schema = ContributionRelationshipSchema(many=True)
 
 
 #      _    ____ ___
@@ -442,7 +443,7 @@ def health_mutual_item(id: str) -> utils.Response:
 def emergency_relationship(id: str) -> utils.Response:
     if request.method == "POST":
         payload = request.get_json()
-        payload["resident_id"] = id
+        payload["residentId"] = id
         return create_new_item(
             EmergencyRelationship,
             emergency_relationship_schema,
@@ -451,8 +452,8 @@ def emergency_relationship(id: str) -> utils.Response:
 
     if request.method == "GET":
         er_collection = EmergencyRelationship.query.filter_by(
-            resident_id=id).all()
-        list_result = emergency_relationships_schema.dump(er_collection)
+            residentId=id).all()
+        list_result = emergencyRelationships_schema.dump(er_collection)
         return utils.http_response(utils.HTTPStatus.OK, list_result)
 
 
@@ -471,16 +472,16 @@ def emergency_relationship_item(id: str, er_id: str) -> utils.Response:
 
 
 @app.route('/residents/<string:id>/contribution-relationships', methods=["GET", "POST"])
-def contribution_relationships_collection(id: str) -> utils.Response:
+def contributionRelationships_collection(id: str) -> utils.Response:
     if request.method == "GET":
         er_collection = ContributionRelationship.query.filter_by(
-            resident_id=id).all()
-        list_result = contribution_relationships_schema.dump(er_collection)
+            residentId=id).all()
+        list_result = contributionRelationships_schema.dump(er_collection)
         return utils.http_response(utils.HTTPStatus.OK, list_result)
 
     if request.method == "POST":
         payload = request.get_json()
-        payload["resident_id"] = id
+        payload["residentId"] = id
         return create_new_item(ContributionRelationship, contribution_relationship_schema, payload)
 
 
