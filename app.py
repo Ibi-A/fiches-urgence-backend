@@ -203,6 +203,9 @@ contribution_relationships_schema = ContributionRelationshipSchema(many=True)
 
 
 ##### API #####
+
+# Generic CRUD functions
+
 def get_collection(model: db.Model, schema: ma.SQLAlchemyAutoSchema) -> list:
     """Get a list of rows of given 'model' in the DB and then 
     serialize it with the given 'schema'.
@@ -327,183 +330,156 @@ def create_new_item(
     result = schema.dump(model.query.get(item.id))
     return utils.http_response(utils.HTTPStatus.CREATED, result)
 
+# API routes 
 
-@app.route("/persons")
-def get_person_collection() -> utils.Response:
-    return get_collection(Person, persons_schema)
-
-
-@app.route("/persons/<string:id>")
-def get_person(id: str) -> utils.Response:
-    return get_item_by_id(Person, person_schema, id)
-
-
-@app.route("/persons", methods=["POST"])
-def new_person() -> utils.Response:
-    return create_new_item(Person, person_schema)
+@app.route("/persons", methods=["GET", "POST"])
+def person_collection() -> utils.Response:
+    if request.method == "GET":
+        return get_collection(Person, persons_schema)
+    if request.method == "POST":
+        return create_new_item(Person, person_schema)
 
 
-@app.route("/persons/<string:id>", methods=["PUT", "PATCH"])
-def update_person(id: str) -> utils.Response:
-    return update_item_by_id(Person, person_schema, id)
+@app.route("/persons/<string:id>", methods=["GET", "PUT", "PATCH", "DELETE"])
+def person_item(id: str) -> utils.Response:
+    if request.method == "GET":
+        return get_item_by_id(Person, person_schema, id)
+    if request.method in ["PUT", "PATCH"]:
+        return update_item_by_id(Person, person_schema, id)
+    if request.method == "DELETE":
+        return delete_item_by_id(model, id)
 
 
-@app.route("/persons/<string:id>", methods=["DELETE"])
-def delete_person(id: str) -> utils.Response:
-    return delete_item_by_id(model, id)
+@app.route("/residents", methods=["GET", "POST"])
+def resident_collection() -> utils.Response:
+    if request.method == "GET":
+        return get_collection(Resident, residents_schema)
+    if request.method == "POST":
+        return create_new_item(Resident, resident_schema)
 
 
-@app.route("/residents")
-def get_resident_collection() -> utils.Response:
-    return get_collection(Resident, residents_schema)
+@app.route("/residents/<string:id>", methods=["GET", "PUT", "PATCH", "DELETE"])
+def resident_item(id: str) -> utils.Response:
+    if request.method == "GET":
+        return get_item_by_id(Resident, resident_schema, id)
+    if request.method in ["PUT", "PATCH"]:
+        return update_item_by_id(Resident, resident_schema, id)
+    if request.method == "DELETE":
+        return delete_item_by_id(Resident, id)
 
 
-@app.route("/residents", methods=["POST"])
-def new_resident() -> utils.Response:
-    return create_new_item(Resident, resident_schema)
+@app.route("/cities", methods=["GET", "POST"])
+def cities_collection() -> utils.Response:
+    if request.method == "GET":
+        return get_collection(City, cities_schema)
+    if request.method == "POST":
+        return create_new_item(City, city_schema)
 
 
-@app.route("/residents/<string:id>")
-def get_resident(id: str) -> utils.Response:
-    return get_item_by_id(Resident, resident_schema, id)
+@app.route("/cities/<string:id>", methods=["GET", "PUT", "PATCH", "DELETE"])
+def city_item(id: str) -> utils.Response:
+    if request.method == "GET":
+        return get_item_by_id(City, city_schema, id)
+    if request.method in ["PUT", "PATCH"]:
+        return update_item_by_id(City, city_schema, id)
+    if request.method == ["DELETE"]:
+        return delete_item_by_id(City, id)
 
 
-@app.route("/residents/<string:id>", methods=["DELETE"])
-def delete_resident(id: str) -> utils.Response:
-    return delete_item_by_id(Resident, id)
+@app.route("/contributors", methods=["GET", "POST"])
+def contributor_collection() -> utils.Response:
+    if request.method == "GET":
+        return get_collection(Contributor, contributors_schema)
+    if request.method == "POST":
+        return create_new_item(Contributor, contributor_schema)
 
 
-@app.route("/residents/<string:id>", methods=["PUT", "PATCH"])
-def update_resident(id: str) -> utils.Response:
-    return update_item_by_id(Resident, resident_schema, id)
+@app.route("/contributors/<string:id>", methods=["GET", "PUT", "PATCH", "DELETE"])
+def contributor_item(id: str) -> utils.Response:
+    if request.method == "GET":
+        return get_item_by_id(Contributor, contributor_schema, id)
+    if request.method in ["PUT", "PATCH"]:
+        return update_item_by_id(Contributor, contributor_schema, id)
+    if request.method == ["DELETE"]:
+        return delete_item_by_id(Contributor, id)
 
 
-@app.route("/cities")
-def get_citie_collection() -> utils.Response:
-    return get_collection(City, cities_schema)
+@app.route("/health-mutuals", methods=["GET", "POST"])
+def health_mutual_collection() -> utils.Response:
+    if request.method == "GET":
+        return get_collection(HealthMutual, health_mutuals_schema)
+    if request.method == "POST":
+        return create_new_item(HealthMutual, health_mutual_schema)
 
 
-@app.route("/cities", methods=["POST"])
-def new_city() -> utils.Response:
-    return create_new_item(City, city_schema)
+@app.route("/health-mutuals/<string:id>", methods=["GET", "PUT", "PATCH", "DELETE"])
+def health_mutual_item(id: str) -> utils.Response:
+    if request.method == "GET":
+        return get_item_by_id(HealthMutual, health_mutual_schema, id)
+    if request.method in ["PUT", "PATCH"]:
+        return update_item_by_id(HealthMutual, health_mutual_schema, id)
+    if request.method == ["DELETE"]:
+        return delete_item_by_id(HealthMutual, id)
 
 
-@app.route("/cities/<string:id>")
-def get_city(id: str) -> utils.Response:
-    return get_item_by_id(City, city_schema, id)
+@app.route('/residents/<string:id>/emergency-relationships', methods=["GET", "POST"])
+def emergency_relationship(id: str) -> utils.Response:
+    if request.method == "POST":
+        payload = request.get_json()
+        payload["resident_id"] = id
+        return create_new_item(
+            EmergencyRelationship,
+            emergency_relationship_schema,
+            payload
+        )
+
+    if request.method == "GET":
+        er_collection = EmergencyRelationship.query.filter_by(
+            resident_id=id).all()
+        list_result = emergency_relationships_schema.dump(er_collection)
+        return utils.http_response(utils.HTTPStatus.OK, list_result)
 
 
-@app.route("/cities/<string:id>", methods=["DELETE"])
-def delete_city(id: str) -> utils.Response:
-    return delete_item_by_id(City, id)
-
-
-@app.route("/cities/<string:id>", methods=["PUT", "PATCH"])
-def update_city(id: str) -> utils.Response:
-    return update_item_by_id(City, city_schema, id)
-
-
-@app.route("/contributors")
-def get_contributor_collection() -> utils.Response:
-    return get_collection(Contributor, contributors_schema)
-
-
-@app.route("/contributors/<string:id>")
-def get_contributor(id: str) -> utils.Response:
-    return get_item_by_id(Contributor, contributor_schema, id)
-
-
-@app.route("/contributors", methods=["POST"])
-def new_contributor() -> utils.Response:
-    return create_new_item(Contributor, contributor_schema)
-
-
-@app.route("/contributors/<string:id>", methods=["PUT", "PATCH"])
-def update_contributor(id: str) -> utils.Response:
-    return update_item_by_id(Contributor, contributor_schema, id)
-
-
-@app.route("/contributors/<string:id>", methods=["DELETE"])
-def delete_contributor(id: str) -> utils.Response:
-    return delete_item_by_id(Contributor, id)
-
-
-@app.route("/health-mutuals")
-def get_health_mutual_collection() -> utils.Response:
-    return get_collection(HealthMutual, health_mutuals_schema)
-
-
-@app.route("/health-mutuals/<string:id>")
-def get_health_mutual(id: str) -> utils.Response:
-    return get_item_by_id(HealthMutual, health_mutual_schema, id)
-
-
-@app.route("/health-mutuals", methods=["POST"])
-def new_health_mutual() -> utils.Response:
-    return create_new_item(HealthMutual, health_mutual_schema)
-
-
-@app.route("/health-mutuals/<string:id>", methods=["PUT", "PATCH"])
-def update_health_mutual(id: str) -> utils.Response:
-    return update_item_by_id(HealthMutual, health_mutual_schema, id)
-
-
-@app.route("/health-mutuals/<string:id>", methods=["DELETE"])
-def delete_health_mutual(id: str) -> utils.Response:
-    return delete_item_by_id(HealthMutual, id)
-
-
-@app.route('/residents/<string:id>/emergency-relationships')
-def emergency_relationships_collection(id: str) -> utils.Response:
-    er_collection = EmergencyRelationship.query.filter_by(resident_id=id).all()
-    list_result = emergency_relationships_schema.dump(er_collection)
-    return utils.http_response(utils.HTTPStatus.OK, list_result)
-
-
-@app.route('/residents/<string:id>/emergency-relationships', methods=['POST'])
-def new_emergency_relationship(id: str) -> utils.Response:
-    payload = request.get_json()
-    payload["resident_id"] = id
-    return create_new_item(EmergencyRelationship, emergency_relationship_schema, payload)
-
-
-@app.route('/residents/<string:id>/emergency-relationships/<string:er_id>')
+@app.route('/residents/<string:id>/emergency-relationships/<string:er_id>', methods=["GET", "PUT", "PATCH", "DELETE"])
 def emergency_relationship_item(id: str, er_id: str) -> utils.Response:
-    return get_item_by_id(EmergencyRelationship, emergency_relationship_schema, er_id)
+    if request.method == "GET":
+        return get_item_by_id(EmergencyRelationship, emergency_relationship_schema, er_id)
+    if request.method in ["PUT", "PATCH"]:
+        return update_item_by_id(
+            EmergencyRelationship,
+            emergency_relationship_schema,
+            er_id
+        )
+    if request.method == ["DELETE"]:
+        return delete_item_by_id(EmergencyRelationship, er_id)
 
 
-@app.route('/residents/<string:id>/emergency-relationships/<string:er_id>', methods=["PUT", "PATCH"])
-def update_emergency_relationship(id: str, er_id: str) -> utils.Response:
-    return update_item_by_id(EmergencyRelationship, emergency_relationship_schema, er_id)
-
-
-@app.route('/residents/<string:id>/contribution-relationships')
+@app.route('/residents/<string:id>/contribution-relationships', methods=["GET", "POST"])
 def contribution_relationships_collection(id: str) -> utils.Response:
-    er_collection = ContributionRelationship.query.filter_by(
-        resident_id=id).all()
-    list_result = contribution_relationships_schema.dump(er_collection)
-    return utils.http_response(utils.HTTPStatus.OK, list_result)
+    if request.method == "GET":
+        er_collection = ContributionRelationship.query.filter_by(
+            resident_id=id).all()
+        list_result = contribution_relationships_schema.dump(er_collection)
+        return utils.http_response(utils.HTTPStatus.OK, list_result)
+
+    if request.method == "POST":
+        payload = request.get_json()
+        payload["resident_id"] = id
+        return create_new_item(ContributionRelationship, contribution_relationship_schema, payload)
 
 
-@app.route('/residents/<string:id>/contribution-relationships', methods=['POST'])
-def new_contribution_relationship(id: str) -> utils.Response:
-    payload = request.get_json()
-    payload["resident_id"] = id
-    return create_new_item(ContributionRelationship, contribution_relationship_schema, payload)
-
-
-@app.route('/residents/<string:id>/contribution-relationships/<string:er_id>')
-def contribution_relationship_item(id: str, er_id: str) -> utils.Response:
-    return get_item_by_id(ContributionRelationship, contribution_relationship_schema, er_id)
-
-
-@app.route('/residents/<string:id>/contribution-relationships/<string:er_id>', methods=["PUT", "PATCH"])
-def update_contribution_relationship(id: str, er_id: str) -> utils.Response:
-    return update_item_by_id(
-        ContributionRelationship,
-        contribution_relationship_schema,
-        er_id
-    )
+@app.route('/residents/<string:id>/contribution-relationships/<string:cr_id>', methods=["GET", "PUT", "PATCH", "DELETE"])
+def contribution_relationship_item(_, cr_id: str) -> utils.Response:
+    if request.method == "GET":
+        return get_item_by_id(ContributionRelationship, contribution_relationship_schema, er_id)
+    if request.method in ["PUT", "PATCH"]:
+        return update_item_by_id(
+            ContributionRelationship,
+            contribution_relationship_schema,
+            cr_id
+        )
+    if request.method == ["DELETE"]:
+        return delete_item_by_id(ContributionRelationship, cr_id)
 
 
 @app.route('/db-reset', methods=['POST'])
