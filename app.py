@@ -13,7 +13,12 @@ app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///data.db"
 db = SQLAlchemy(app)
 ma = Marshmallow(app)
 
-##### MODELS #####
+
+#   __  __  ___  ____  _____ _     ____
+#  |  \/  |/ _ \|  _ \| ____| |   / ___|
+#  | |\/| | | | | | | |  _| | |   \___ \
+#  | |  | | |_| | |_| | |___| |___ ___) |
+#  |_|  |_|\___/|____/|_____|_____|____/
 
 
 class ModelMixin(object):
@@ -124,7 +129,12 @@ class ContributionRelationship(ModelMixin, db.Model):
     resident_id = db.Column(db.String, db.ForeignKey(
         'resident.id'))
 
-##### SCHEMAS #####
+
+#   ____   ____ _   _ _____ __  __    _    ____
+#  / ___| / ___| | | | ____|  \/  |  / \  / ___|
+#  \___ \| |   | |_| |  _| | |\/| | / _ \ \___ \
+#   ___) | |___|  _  | |___| |  | |/ ___ \ ___) |
+#  |____/ \____|_| |_|_____|_|  |_/_/   \_\____/
 
 
 class SchemaMixin(object):
@@ -202,7 +212,12 @@ contribution_relationship_schema = ContributionRelationshipSchema()
 contribution_relationships_schema = ContributionRelationshipSchema(many=True)
 
 
-##### API #####
+#      _    ____ ___
+#     / \  |  _ \_ _|
+#    / _ \ | |_) | |
+#   / ___ \|  __/| |
+#  /_/   \_\_|  |___|
+
 
 # Generic CRUD functions
 
@@ -330,7 +345,8 @@ def create_new_item(
     result = schema.dump(model.query.get(item.id))
     return utils.http_response(utils.HTTPStatus.CREATED, result)
 
-# API routes 
+# API routes
+
 
 @app.route("/persons", methods=["GET", "POST"])
 def person_collection() -> utils.Response:
