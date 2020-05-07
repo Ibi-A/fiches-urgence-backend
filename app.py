@@ -26,7 +26,7 @@ ma = Marshmallow(app)
 class ModelMixin(object):
 
     def update(self: db.Model, new_values: dict) -> db.Model:
-        """Update an object with new values.
+        """ Updates an object with new values.
 
         Args:
             new_values (dict): New values to update the object with
@@ -223,8 +223,8 @@ contributionRelationships_schema = ContributionRelationshipSchema(many=True)
 # Generic CRUD functions
 
 def get_collection(model: db.Model, schema: ma.SQLAlchemyAutoSchema) -> list:
-    """Get a list of rows of given 'model' in the DB and then 
-    serialize it with the given 'schema'.
+    """ Gets a list of rows of given 'model' in the DB and then 
+    serializes it with the given 'schema'.
 
     Args:
         model (db.Model): the type of rows expected
@@ -238,8 +238,8 @@ def get_collection(model: db.Model, schema: ma.SQLAlchemyAutoSchema) -> list:
 
 
 def get_item_by_id(model: db.Model, schema: ma.SQLAlchemyAutoSchema, id: str) -> Response:
-    """Get a single row with given 'id' of given 'model' in the DB and then 
-    serialize it with the given 'schema'.
+    """ Gets a single row with given 'id' of given 'model' in the DB and then 
+    serializes it with the given 'schema'.
 
     Args:
         model (db.Model): the type of row expected
@@ -258,8 +258,8 @@ def get_item_by_id(model: db.Model, schema: ma.SQLAlchemyAutoSchema, id: str) ->
 
 
 def update_item_by_id(model: db.Model, schema: ma.SQLAlchemyAutoSchema, id: str) -> Response:
-    """Update a single row with given 'id' of given 'model' in the DB and then 
-    serialize it with the given 'schema'.
+    """Updates a single row with given 'id' of given 'model' in the DB and then 
+    serializes it with the given 'schema'.
     Tipycally for PUT or PATCH API methods
 
     Args:
@@ -292,7 +292,7 @@ def update_item_by_id(model: db.Model, schema: ma.SQLAlchemyAutoSchema, id: str)
 
 
 def delete_item_by_id(model: db.Model, id: str) -> Response:
-    """Delete a single row with given 'id' of given 'model' in the DB
+    """ Deletes a single row with given 'id' of given 'model' in the DB
 
     Args:
         model (db.Model): the type of row expected
@@ -312,7 +312,7 @@ def create_new_item(
     schema: ma.SQLAlchemyAutoSchema,
     payload: dict = None
 ) -> dict:
-    """Creates a new row of given 'model' in the DB and then returns it
+    """ Creates a new row of given 'model' in the DB and then returns it
     serialized 'schema'. Generates a random id when none is passed in request.
     Tipycally for POST methods
 
