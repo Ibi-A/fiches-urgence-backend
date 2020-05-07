@@ -36,7 +36,7 @@ class ModelMixin(object):
             InvalidRequestException: If there is key 'id' in 'new_values'.
         """
         if new_values.get("id"):
-            raise InvalidRequestException("Forbidden to update id")
+            raise InvalidRequestException("Forbidden to update id............")
 
         for attr, value in new_values.items():
             self.__setattr__(attr, value)
