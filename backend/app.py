@@ -7,7 +7,7 @@ from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy import PrimaryKeyConstraint
 from flask_marshmallow import Marshmallow
 from marshmallow import Schema, fields, ValidationError, post_load
-from exceptions import InvalidRequestException
+from backend.exceptions import InvalidRequestException
 
 app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///data.db"
