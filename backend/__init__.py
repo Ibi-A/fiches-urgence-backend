@@ -6,6 +6,16 @@ from flask_marshmallow import Marshmallow
 
 db = SQLAlchemy()
 ma = Marshmallow()
+from sqlalchemy.engine import Engine
+from sqlalchemy import event
+
+
+@event.listens_for(Engine, "connect")
+def set_sqlite_pragma(dbapi_connection, connection_record):
+    """ Force any sqlite db to enable foreign keys check """
+    cursor = dbapi_connection.cursor()
+    cursor.execute("PRAGMA foreign_keys=ON")
+    cursor.close()
 
 def create_app():
     """Construct the core application."""
@@ -15,8 +25,6 @@ def create_app():
     db.init_app(app)
 
     with app.app_context():
-        from backend import routes, models, schemas 
+        from backend import routes, models, schemas
         db.create_all()
-    
         return app
-
