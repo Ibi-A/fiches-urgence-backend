@@ -66,7 +66,7 @@ class ResidentSchema(SchemaMixin, ma.SQLAlchemyAutoSchema):
         model = Resident
     person = fields.Nested(PersonSchema)
     city = fields.Nested(CitySchema)
-    health_mutual = fields.Nested(HealthMutualSchema)
+    healthMutual = fields.Nested(HealthMutualSchema)
     doctor = fields.Nested(PersonSchema)
     psychiatrist = fields.Nested(PersonSchema)
 
