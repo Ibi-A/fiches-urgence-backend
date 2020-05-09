@@ -13,14 +13,18 @@ ma = Marshmallow()
 
 @event.listens_for(Engine, "connect")
 def set_sqlite_pragma(dbapi_connection, connection_record):
-    """ Force any sqlite db to enable foreign keys check """
+    """ Forces any sqlite db to enable foreign keys check """
     cursor = dbapi_connection.cursor()
     cursor.execute("PRAGMA foreign_keys=ON")
     cursor.close()
 
 
-def create_app():
-    """Construct the core application."""
+def create_app() -> Flask:
+    """ Constructs the core applications
+    
+    Returns:
+        Flask:  a flask app
+    """
     app = Flask(__name__, instance_relative_config=False)
     app.config.from_object(Config)
     cors = CORS(app)
