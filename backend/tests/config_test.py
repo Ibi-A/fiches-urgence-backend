@@ -1,4 +1,4 @@
-from backend import create_app, db
+from backend import create_app, db, config
 from flask_testing import TestCase
 import unittest
 import logging
@@ -11,11 +11,8 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 # Creates a new instance of the Flask application. The reason for this
 # is that we can't interrupt the application instance that is currently
 # running and serving requests.
-app = create_app()
-client = app.test_client()
 
-
-class TestWebsite(TestCase):
+class TestApi(TestCase):
 
     #   _____ ___ ___ _____    ___ ___  _  _ ___ ___ ___
     #  |_   _| __/ __|_   _|  / __/ _ \| \| | __|_ _/ __|
@@ -26,10 +23,10 @@ class TestWebsite(TestCase):
         """
         Instructs Flask to run these commands when we request this group of tests to be run.
         """
-
+        app = create_app()
         # Sets the configuration of the application to 'TestingConfig' in order
         # that the tests use db_test, not db_dev or db_prod.
-        # app.config.from_object('config_test.Config')
+        app.config.from_object(config.ConfigTest)
         SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
             'sqlite:///' + os.path.join(basedir, 'db_instances', 'test.db')
         SQLALCHEMY_TRACK_MODIFICATIONS = False
@@ -45,3 +42,7 @@ class TestWebsite(TestCase):
         """Defines what should be done after every single test in this test group."""
         db.session.remove()
         db.drop_all()
+    
+    
+app = TestApi().create_app()
+client = app.test_client()
