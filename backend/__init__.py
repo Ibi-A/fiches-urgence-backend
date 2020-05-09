@@ -1,13 +1,14 @@
 from flask import Flask
 from flask_cors import CORS
-from backend.config import Config
+from sqlalchemy import event
+from sqlalchemy.engine import Engine
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
+from backend.config import Config
 
 db = SQLAlchemy()
 ma = Marshmallow()
-from sqlalchemy.engine import Engine
-from sqlalchemy import event
+
 
 
 @event.listens_for(Engine, "connect")
