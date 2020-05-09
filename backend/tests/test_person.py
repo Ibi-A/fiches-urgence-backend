@@ -23,6 +23,10 @@ class TestPerson(TestApi):
         res = client.get('/persons')
         eq_(200, res.status_code)
 
+    def test_get_unknwon(self):
+        res = client.get('/persons/unknown')
+        eq_(404, res.status_code)
+
     def test_post_persons_no_data(self):
         res = client.post('/persons')
         eq_(400, res.status_code)
