@@ -1,4 +1,5 @@
 from backend import db
+from backend.exceptions import InvalidRequestException
 
 #   __  __  ___  ____  _____ _     ____
 #  |  \/  |/ _ \|  _ \| ____| |   / ___|
