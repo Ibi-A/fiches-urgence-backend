@@ -17,6 +17,7 @@ def set_sqlite_pragma(dbapi_connection, connection_record):
     cursor.execute("PRAGMA foreign_keys=ON")
     cursor.close()
 
+
 def create_app():
     """Construct the core application."""
     app = Flask(__name__, instance_relative_config=False)
