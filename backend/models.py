@@ -1,4 +1,4 @@
-from app import db
+from backend import db
 
 #   __  __  ___  ____  _____ _     ____
 #  |  \/  |/ _ \|  _ \| ____| |   / ___|

@@ -1,6 +1,6 @@
 from marshmallow import Schema, fields, ValidationError, post_load
-from app import ma
-from app.models import (
+from backend import ma
+from backend.models import (
     Resident,
     Person,
     EmergencyRelationship,

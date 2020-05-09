@@ -2,9 +2,10 @@ from flask import request, Response
 from sqlalchemy.orm.exc import NoResultFound
 from marshmallow import ValidationError
 from src import utils
-from app import db, app, ma
-from app.exceptions import InvalidRequestException
-from app.models import (
+from flask import current_app as app
+from backend import db, ma
+from backend.exceptions import InvalidRequestException
+from backend.models import (
     Resident,
     Person,
     EmergencyRelationship,
@@ -13,7 +14,7 @@ from app.models import (
     Contributor,
     HealthMutual
 )
-from app.schemas import (
+from backend.schemas import (
     resident_schema, residents_schema,
     person_schema, persons_schema,
     city_schema, cities_schema,
