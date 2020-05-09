@@ -22,6 +22,7 @@ class TestPerson(TestApi):
     def test_get_persons(self):
         res = client.get('/persons')
         eq_(200, res.status_code)
+        eq_([], res.json)
 
     def test_get_unknwon(self):
         res = client.get('/persons/unknown')
