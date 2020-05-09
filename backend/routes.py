@@ -1,5 +1,6 @@
 from flask import request, Response
 from sqlalchemy.orm.exc import NoResultFound
+from sqlalchemy.exc import IntegrityError
 from marshmallow import ValidationError
 from src import utils
 from flask import current_app as app
@@ -182,7 +183,10 @@ def resident_collection() -> utils.Response:
     if request.method == "GET":
         return get_collection(Resident, residents_schema)
     if request.method == "POST":
-        return create_new_item(Resident, resident_schema)
+        try: 
+            return create_new_item(Resident, resident_schema)
+        except IntegrityError as err:
+            return "id attribute should be an existing person id", 400
 
 
 @app.route("/residents/<string:id>", methods=["GET", "PUT", "PATCH", "DELETE"])
