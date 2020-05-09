@@ -174,7 +174,7 @@ def person_item(id: str) -> utils.Response:
     if request.method in ["PUT", "PATCH"]:
         return update_item_by_id(Person, person_schema, id)
     if request.method == "DELETE":
-        return delete_item_by_id(model, id)
+        return delete_item_by_id(Person, id)
 
 
 @app.route("/residents", methods=["GET", "POST"])
