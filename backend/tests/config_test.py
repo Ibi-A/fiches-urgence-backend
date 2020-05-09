@@ -42,7 +42,20 @@ class TestApi(TestCase):
         """Defines what should be done after every single test in this test group."""
         db.session.remove()
         db.drop_all()
-    
-    
+
+
 app = TestApi().create_app()
 client = app.test_client()
+
+
+def is_dict_subset_of_superset(superset: dict, subset: dict) -> bool:
+    """ Checks if a dictionnary is a subnet of a larger or same of
+    another smaller dictionnary
+
+    Args:
+        superset (dict): the larger dictionnary
+        subset (dict): the smaller dictionnary
+    Returns:
+        bool: True if the subset is part of the superset, False otherwise
+    """
+    return subset.items() <= superset.items()
