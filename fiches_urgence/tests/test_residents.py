@@ -21,7 +21,7 @@ PERSON = {
 RESIDENT = {
     'id': None,
     'birthplace': "birthplace",
-    'psychiatrist_id': None,
+    'psychiatristId': None,
     'cityId': None,
     'emergencyBag': None,
     'referringDoctorId': None,
@@ -36,7 +36,7 @@ class TestResident(TestApi):
 
     def setUp(self):
         """ Overloads setUp method to automatically create a new Person """
-        super(TestPerson, self).setUp()
+        super(TestResident, self).setUp()
         res_person = client.post('/persons', json=PERSON)
         RESIDENT["id"] = PERSON["id"] = res_person.json["id"]
 
@@ -76,14 +76,13 @@ class TestResident(TestApi):
 
         res = client.delete(f"/residents/{res_post.json['id']}")
         eq_(204, res.status_code)
-        res = client.get(f"/residents/{res_post.json['id']}")
 
     def test_put_resident(self):
         res_post = client.post('/residents', json=RESIDENT)
 
         new_resident = {
             'birthplace': "birthplace",
-            'psychiatrist_id': None,
+            'psychiatristId': None,
             'cityId': None,
             'emergencyBag': None,
             'referringDoctorId': None,
@@ -98,3 +97,53 @@ class TestResident(TestApi):
         new_resident["person"] = PERSON
         eq_(200, res.status_code)
         eq_(True, is_dict_subset_of_superset(new_resident, res.json))
+
+    def test_resident_doctor(self):
+        # Creates a resident
+        res_resident_post = client.post('/residents', json=RESIDENT)
+
+        # Creates a person
+        doctor = {
+            "firstName": "doctorFirst",
+            "lastName": "doctorLast",
+            "address": "doctorAddress"
+        }
+        res_post_doctor = client.post('/persons', json=doctor)
+
+        # Links the person to the resident through the referringDoctorId
+        new_resident = {
+            'referringDoctorId': res_post_doctor.json["id"],
+        }
+        res_put = client.put(
+            f'/residents/{res_resident_post.json["id"]}', json=new_resident)
+
+        # Check if doctor attribute is created, and with right values
+        res = client.get(f'/residents/{RESIDENT["id"]}')
+        ok_(res.json["doctor"])
+        eq_(res.json["referringDoctorId"], res.json["doctor"]["id"])
+        eq_(True, is_dict_subset_of_superset(doctor, res.json["doctor"]))
+
+    def test_resident_psychiatrist(self):
+        # Creates a resident
+        res_resident_post = client.post('/residents', json=RESIDENT)
+
+        # Creates a person
+        psychiatrist = {
+            "firstName": "psychiatristFirst",
+            "lastName": "psychiatristLast",
+            "address": "psychiatristAddress"
+        }
+        res_post_psychiatrist = client.post('/persons', json=psychiatrist)
+
+        # Links the person to the resident through the referringDoctorId
+        new_resident = {
+            'psychiatristId': res_post_psychiatrist.json["id"],
+        }
+        res_put = client.put(
+            f'/residents/{res_resident_post.json["id"]}', json=new_resident)
+
+        # Check if psychiatrist attribute is created, and with right values
+        res = client.get(f'/residents/{RESIDENT["id"]}')
+        ok_(res.json["psychiatrist"])
+        eq_(res.json["psychiatristId"], res.json["psychiatrist"]["id"])
+        eq_(True, is_dict_subset_of_superset(psychiatrist, res.json["psychiatrist"]))
