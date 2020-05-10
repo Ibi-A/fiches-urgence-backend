@@ -232,7 +232,7 @@ def contributor_item(id: str) -> utils.Response:
         return get_item_by_id(Contributor, contributor_schema, id)
     if request.method in ["PUT", "PATCH"]:
         return update_item_by_id(Contributor, contributor_schema, id)
-    if request.method == ["DELETE"]:
+    if request.method == "DELETE":
         return delete_item_by_id(Contributor, id)
 
 
@@ -250,7 +250,7 @@ def health_mutual_item(id: str) -> utils.Response:
         return get_item_by_id(HealthMutual, health_mutual_schema, id)
     if request.method in ["PUT", "PATCH"]:
         return update_item_by_id(HealthMutual, health_mutual_schema, id)
-    if request.method == ["DELETE"]:
+    if request.method == "DELETE":
         return delete_item_by_id(HealthMutual, id)
 
 
@@ -282,7 +282,7 @@ def emergency_relationship_item(id: str, er_id: str) -> utils.Response:
             emergency_relationship_schema,
             er_id
         )
-    if request.method == ["DELETE"]:
+    if request.method == "DELETE":
         return delete_item_by_id(EmergencyRelationship, er_id)
 
 
@@ -310,7 +310,7 @@ def contribution_relationship_item(_, cr_id: str) -> utils.Response:
             contribution_relationship_schema,
             cr_id
         )
-    if request.method == ["DELETE"]:
+    if request.method == "DELETE":
         return delete_item_by_id(ContributionRelationship, cr_id)
 
 
