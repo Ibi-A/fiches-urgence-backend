@@ -214,7 +214,7 @@ def city_item(id: str) -> utils.Response:
         return get_item_by_id(City, city_schema, id)
     if request.method in ["PUT", "PATCH"]:
         return update_item_by_id(City, city_schema, id)
-    if request.method == ["DELETE"]:
+    if request.method == "DELETE":
         return delete_item_by_id(City, id)
 
 
