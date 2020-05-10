@@ -1,5 +1,5 @@
-from backend import db
-from backend.exceptions import InvalidRequestException
+from fiches_urgence import db
+from fiches_urgence.exceptions import InvalidRequestException
 
 #   __  __  ___  ____  _____ _     ____
 #  |  \/  |/ _ \|  _ \| ____| |   / ___|

@@ -1,4 +1,4 @@
-from backend import create_app, db, config
+from fiches_urgence import create_app, db, config
 from flask_testing import TestCase
 import unittest
 import logging

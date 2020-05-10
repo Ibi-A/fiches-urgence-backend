@@ -1,6 +1,6 @@
 from marshmallow import Schema, fields, ValidationError, post_load
-from backend import ma
-from backend.models import (
+from fiches_urgence import ma
+from fiches_urgence.models import (
     Resident,
     Person,
     EmergencyRelationship,

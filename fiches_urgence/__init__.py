@@ -4,7 +4,7 @@ from sqlalchemy import event
 from sqlalchemy.engine import Engine
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
-from backend.config import Config
+from fiches_urgence.config import Config
 
 db = SQLAlchemy()
 ma = Marshmallow()
@@ -31,6 +31,6 @@ def create_app() -> Flask:
     db.init_app(app)
 
     with app.app_context():
-        from backend import routes, models, schemas
+        from fiches_urgence import routes, models, schemas
         db.create_all()
         return app

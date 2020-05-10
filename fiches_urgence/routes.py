@@ -4,9 +4,9 @@ from sqlalchemy.exc import IntegrityError
 from marshmallow import ValidationError
 from src import utils
 from flask import current_app as app
-from backend import db, ma
-from backend.exceptions import InvalidRequestException
-from backend.models import (
+from fiches_urgence import db, ma
+from fiches_urgence.exceptions import InvalidRequestException
+from fiches_urgence.models import (
     Resident,
     Person,
     EmergencyRelationship,
@@ -15,7 +15,7 @@ from backend.models import (
     Contributor,
     HealthMutual
 )
-from backend.schemas import (
+from fiches_urgence.schemas import (
     resident_schema, residents_schema,
     person_schema, persons_schema,
     city_schema, cities_schema,

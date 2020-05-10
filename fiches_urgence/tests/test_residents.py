@@ -1,5 +1,5 @@
-from backend.models import Person, Resident
-from backend import db
+from fiches_urgence.models import Person, Resident
+from fiches_urgence import db
 from config_test import TestApi, client, is_dict_subset_of_superset
 from nose.tools import eq_, ok_
 

@@ -1,5 +1,5 @@
-from backend.models import Person
-from backend import db
+from fiches_urgence.models import Person
+from fiches_urgence import db
 from config_test import TestApi, client
 from nose.tools import eq_, ok_
 
