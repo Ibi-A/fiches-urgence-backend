@@ -53,7 +53,7 @@ class Person(ModelMixin, db.Model):
 class City(ModelMixin, db.Model):
     id = db.Column(db.String, primary_key=True)
     name = db.Column(db.String, index=True)
-    postal_code = db.Column(db.String)
+    postalCode = db.Column(db.String)
     residents = db.relationship(
         'Resident', backref='city', lazy=True, foreign_keys='[Resident.cityId]')
 
