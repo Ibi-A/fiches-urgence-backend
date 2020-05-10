@@ -48,7 +48,7 @@ app = TestApi().create_app()
 client = app.test_client()
 
 
-def is_dict_subset_of_superset(superset: dict, subset: dict) -> bool:
+def is_dict_subset_of_superset(subset: dict, superset: dict) -> bool:
     """ Checks if a dictionnary is a subnet of a larger or same of
     another smaller dictionnary
 
