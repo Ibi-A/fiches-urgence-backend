@@ -44,7 +44,7 @@ class Person(ModelMixin, db.Model):
     referringDoctors = db.relationship(
         'Resident', backref='doctor', lazy=True, foreign_keys='[Resident.referringDoctorId]')
     psychiatrists = db.relationship(
-        'Resident', backref='psychiatrist', lazy=True, foreign_keys='[Resident.psychiatrist_id]')
+        'Resident', backref='psychiatrist', lazy=True, foreign_keys='[Resident.psychiatristId]')
 
     emergencyRelationships = db.relationship(
         'EmergencyRelationship', foreign_keys='[EmergencyRelationship.personId]')
@@ -91,7 +91,7 @@ class Resident(ModelMixin, db.Model):
         db.String, db.ForeignKey('health_mutual.id'), nullable=True)
     referringDoctorId = db.Column(
         db.String, db.ForeignKey('person.id'), nullable=True)
-    psychiatrist_id = db.Column(
+    psychiatristId = db.Column(
         db.String, db.ForeignKey('person.id'), nullable=True)
 
     emergencyRelationships = db.relationship(
