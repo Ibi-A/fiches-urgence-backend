@@ -184,7 +184,7 @@ def resident_collection() -> utils.Response:
     if request.method == "GET":
         return get_collection(Resident, residents_schema)
     if request.method == "POST":
-        try: 
+        try:
             return create_new_item(Resident, resident_schema, None, False)
         except IntegrityError as err:
             return "id attribute should be an existing person id", 400
@@ -223,7 +223,10 @@ def contributor_collection() -> utils.Response:
     if request.method == "GET":
         return get_collection(Contributor, contributors_schema)
     if request.method == "POST":
-        return create_new_item(Contributor, contributor_schema)
+        try:
+            return create_new_item(Contributor, contributor_schema, None, False)
+        except IntegrityError as err:
+            return "id attribute should be an existing person id", 400
 
 
 @app.route("/contributors/<string:id>", methods=["GET", "PUT", "PATCH", "DELETE"])
