@@ -121,7 +121,8 @@ def delete_item_by_id(model: db.Model, id: str) -> Response:
 def create_new_item(
     model: db.Model,
     schema: ma.SQLAlchemyAutoSchema,
-    payload: dict = None
+    payload: dict = None,
+    new_id: bool = True
 ) -> dict:
     """ Creates a new row of given 'model' in the DB and then returns it
     serialized 'schema'. Generates a random id when none is passed in request.
@@ -144,7 +145,7 @@ def create_new_item(
             if not payload:
                 return {"message": "No input data provided"}, 400
 
-        if not payload.get("id"):
+        if not payload.get("id") or new_id:
             payload["id"] = utils.random_id(8)
 
         # Validate and deserialize input
@@ -184,7 +185,7 @@ def resident_collection() -> utils.Response:
         return get_collection(Resident, residents_schema)
     if request.method == "POST":
         try: 
-            return create_new_item(Resident, resident_schema)
+            return create_new_item(Resident, resident_schema, None, False)
         except IntegrityError as err:
             return "id attribute should be an existing person id", 400
 
