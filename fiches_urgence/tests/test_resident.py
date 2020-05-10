@@ -1,7 +1,7 @@
 from fiches_urgence.models import Person, Resident
 from fiches_urgence import db
 from config_test import TestApi, client, is_dict_subset_of_superset
-from nose.tools import eq_, ok_, with_setup
+from nose.tools import eq_, ok_
 
 #   ____  _____ ____ ___ ____  _____ _   _ _____
 #  |  _ \| ____/ ___|_ _|  _ \| ____| \ | |_   _|
@@ -71,7 +71,7 @@ class TestResident(TestApi):
         # tests using it
         del RESIDENT["person"]
 
-    def test_delete_person(self):
+    def test_delete_resident(self):
         res_post = client.post('/residents', json=RESIDENT)
 
         res = client.delete(f"/residents/{res_post.json['id']}")
