@@ -24,14 +24,12 @@ class TestApi(TestCase):
         Instructs Flask to run these commands when we request this group of tests to be run.
         """
         app = create_app()
-        # Sets the configuration of the application to 'TestingConfig' in order
-        # that the tests use db_test, not db_dev or db_prod.
+        
         app.config.from_object(config.ConfigTest)
         SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
             'sqlite:///' + os.path.join(basedir, 'db_instances', 'test.db')
         SQLALCHEMY_TRACK_MODIFICATIONS = False
-        # Sets the logger to only show ERROR level logs and worse. We don't want
-        # to print a million things when running tests.
+
         return app
 
     def setUp(self):
