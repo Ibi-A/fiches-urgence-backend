@@ -17,6 +17,7 @@ CITY = {
 
 class TestCity(TestApi):
 
+    # ---------------- GET ----------------
     def test_get_cities(self):
         res = client.get('/cities')
         eq_(200, res.status_code)
@@ -26,21 +27,26 @@ class TestCity(TestApi):
         res = client.get('/cities/unknown')
         eq_(404, res.status_code)
 
+    def test_get_city_id(self):
+        res = client.post('/cities', json=CITY)
+        CITY["id"] = res.json["id"]
+
+        res = client.get(f'/cities/{CITY["id"]}')
+        eq_(200, res.status_code)
+        eq_(CITY, res.json)
+
+    # ---------------- POST ----------------
     def test_post_cities_no_data(self):
         res = client.post('/cities')
         eq_(400, res.status_code)
 
     def test_post_cities(self):
         res = client.post('/cities', json=CITY)
-
         eq_(201, res.status_code)
         CITY["id"] = res.json["id"]
         eq_(CITY, res.json)
 
-        res = client.get(f'/cities/{CITY["id"]}')
-        eq_(200, res.status_code)
-        eq_(CITY, res.json)
-
+    # ---------------- PUT ----------------
     def test_put_city(self):
         res_post = client.post('/cities', json=CITY)
         new_city = {
@@ -52,6 +58,7 @@ class TestCity(TestApi):
         eq_(200, res.status_code)
         eq_(new_city, res.json)
 
+    # ---------------- DELETE ----------------
     def test_delete_city(self):
         res_post = client.post('/cities', json=CITY)
         res = client.delete(f"/cities/{res_post.json['id']}")

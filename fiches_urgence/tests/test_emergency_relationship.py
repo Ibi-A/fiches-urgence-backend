@@ -38,7 +38,7 @@ class TestEmergencyRelationship(TestApi):
         RESIDENT["id"] = PERSON["id"] = res_person.json["id"]
         res_resident = client.post('/residents', json=RESIDENT)
 
-    # -------- GET --------
+    # ---------------- GET ----------------
     def test_get_empty(self):
         res = client.get(
             f'/residents/{RESIDENT["id"]}/emergency-relationships')
@@ -50,7 +50,16 @@ class TestEmergencyRelationship(TestApi):
             f'/residents/{RESIDENT["id"]}/emergency-relationships/unknown')
         eq_(404, res.status_code)
 
-    # -------- POST --------
+    def test_get_emergency_relationship_id(self):
+        res_post = client.post(
+            f'/residents/{RESIDENT["id"]}/emergency-relationships',
+            json=EMERGENCY_RELATIONSHIP
+        )
+        res = client.get(
+            f'/residents/{RESIDENT["id"]}/emergency-relationships/{res_post.json["id"]}')
+        eq_(True, is_dict_subset_of_superset(EMERGENCY_RELATIONSHIP, res.json))
+
+    # ---------------- POST ----------------
     def test_post_emergency_relationship(self):
         res = client.post(
             f'/residents/{RESIDENT["id"]}/emergency-relationships',
@@ -59,7 +68,7 @@ class TestEmergencyRelationship(TestApi):
         eq_(201, res.status_code)
         eq_(True, is_dict_subset_of_superset(EMERGENCY_RELATIONSHIP, res.json))
 
-    # -------- PUT --------
+    # ---------------- PUT ----------------
     def test_put_emergency_relationship(self):
         res_post = client.post(
             f"/residents/{RESIDENT['id']}/emergency-relationships",
@@ -78,7 +87,7 @@ class TestEmergencyRelationship(TestApi):
             is_dict_subset_of_superset(new_emergency_relationsship, res.json)
         )
 
-    # -------- DELETE --------
+    # ---------------- DELETE ----------------
     def test_delete_emergency_relationship(self):
         res = client.post(
             f"/residents/{RESIDENT['id']}/emergency-relationships",

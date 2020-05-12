@@ -20,7 +20,7 @@ PERSON = {
 
 class TestPerson(TestApi):
 
-    # -------- GET --------
+    # ---------------- GET ----------------
     def test_get_persons(self):
         res = client.get('/persons')
         eq_(200, res.status_code)
@@ -37,7 +37,7 @@ class TestPerson(TestApi):
         eq_(200, res.status_code)
         eq_(PERSON, res.json)
 
-    # -------- POST --------
+    # ---------------- POST ----------------
     def test_post_persons_no_data(self):
         res = client.post('/persons')
         eq_(400, res.status_code)
@@ -49,7 +49,7 @@ class TestPerson(TestApi):
         PERSON["id"] = res.json["id"]
         eq_(PERSON, res.json)
 
-    # -------- PUT --------
+    # ---------------- PUT ----------------
     def test_put_person(self):
         res_post = client.post('/persons', json=PERSON)
         new_person = {
@@ -64,7 +64,7 @@ class TestPerson(TestApi):
         eq_(200, res.status_code)
         eq_(new_person, res.json)
 
-    # -------- DELETE --------
+    # ---------------- DELETE ----------------
     def test_delete_person(self):
         res_post = client.post('/persons', json=PERSON)
         res = client.delete(f"/persons/{res_post.json['id']}")

@@ -40,6 +40,7 @@ class TestResident(TestApi):
         res_person = client.post('/persons', json=PERSON)
         RESIDENT["id"] = PERSON["id"] = res_person.json["id"]
 
+    # ---------------- GET ----------------
     def test_get_residents(self):
         res = client.get('/residents')
         eq_(200, res.status_code)
@@ -49,54 +50,17 @@ class TestResident(TestApi):
         res = client.get('/residents/unknown')
         eq_(404, res.status_code)
 
-    def test_post_residents_no_data(self):
-        res = client.post('/residents')
-        eq_(400, res.status_code)
-
-    def test_post_residents_unknown_id(self):
-        res = client.post('/residents', json={"id": "unknown"})
-        eq_(400, res.status_code)
-
-    def test_post_residents(self):
+    def test_get_resident_id(self):
         res = client.post('/residents', json=RESIDENT)
-        eq_(201, res.status_code)
-
-        RESIDENT["person"] = PERSON
-
         res = client.get(f'/residents/{RESIDENT["id"]}')
         eq_(200, res.status_code)
+
+        RESIDENT["person"] = PERSON
         eq_(True, is_dict_subset_of_superset(RESIDENT, res.json))
 
         # Remove 'person' key and value from RESIDENT not to impact following
         # tests using it
         del RESIDENT["person"]
-
-    def test_delete_resident(self):
-        res_post = client.post('/residents', json=RESIDENT)
-
-        res = client.delete(f"/residents/{res_post.json['id']}")
-        eq_(204, res.status_code)
-
-    def test_put_resident(self):
-        res_post = client.post('/residents', json=RESIDENT)
-
-        new_resident = {
-            'birthplace': "birthplace",
-            'psychiatristId': None,
-            'cityId': None,
-            'emergencyBag': None,
-            'referringDoctorId': None,
-            'healthMutualId': None,
-            'birthDate': None,
-            'entranceDate': None,
-            'socialWelfareNumber': "1234567890",
-        }
-
-        res = client.put(f'/residents/{ RESIDENT["id"]}', json=new_resident)
-        new_resident["id"] = RESIDENT["id"]
-        new_resident["person"] = PERSON
-        eq_(200, res.status_code)
-        eq_(True, is_dict_subset_of_superset(new_resident, res.json))
 
     def test_resident_doctor(self):
         # Creates a resident
@@ -146,4 +110,47 @@ class TestResident(TestApi):
         res = client.get(f'/residents/{RESIDENT["id"]}')
         ok_(res.json["psychiatrist"])
         eq_(res.json["psychiatristId"], res.json["psychiatrist"]["id"])
-        eq_(True, is_dict_subset_of_superset(psychiatrist, res.json["psychiatrist"]))
+        eq_(True, is_dict_subset_of_superset(
+            psychiatrist, res.json["psychiatrist"]))
+
+    # ---------------- POST ----------------
+    def test_post_residents_no_data(self):
+        res = client.post('/residents')
+        eq_(400, res.status_code)
+
+    def test_post_residents_unknown_id(self):
+        res = client.post('/residents', json={"id": "unknown"})
+        eq_(400, res.status_code)
+
+    def test_post_residents(self):
+        res = client.post('/residents', json=RESIDENT)
+        eq_(201, res.status_code)
+
+    # ---------------- PUT ----------------
+    def test_put_resident(self):
+        res_post = client.post('/residents', json=RESIDENT)
+
+        new_resident = {
+            'birthplace': "birthplace",
+            'psychiatristId': None,
+            'cityId': None,
+            'emergencyBag': None,
+            'referringDoctorId': None,
+            'healthMutualId': None,
+            'birthDate': None,
+            'entranceDate': None,
+            'socialWelfareNumber': "1234567890",
+        }
+
+        res = client.put(f'/residents/{ RESIDENT["id"]}', json=new_resident)
+        new_resident["id"] = RESIDENT["id"]
+        new_resident["person"] = PERSON
+        eq_(200, res.status_code)
+        eq_(True, is_dict_subset_of_superset(new_resident, res.json))
+
+    # ---------------- DELETE ----------------
+    def test_delete_resident(self):
+        res_post = client.post('/residents', json=RESIDENT)
+
+        res = client.delete(f"/residents/{res_post.json['id']}")
+        eq_(204, res.status_code)
