@@ -187,7 +187,10 @@ def resident_collection() -> utils.Response:
         try:
             return create_new_item(Resident, resident_schema, None, False)
         except IntegrityError as err:
-            return "id attribute should be an existing person id", 400
+            message = {
+                "message": "id attribute should be an existing person id"
+            }
+            return utils.http_response(utils.HTTPStatus.BAD_REQUEST, message)
 
 
 @app.route("/residents/<string:id>", methods=["GET", "PUT", "PATCH", "DELETE"])
@@ -226,7 +229,10 @@ def contributor_collection() -> utils.Response:
         try:
             return create_new_item(Contributor, contributor_schema, None, False)
         except IntegrityError as err:
-            return "id attribute should be an existing person id", 400
+            message = {
+                "message": "id attribute should be an existing person id"
+            }
+            return utils.http_response(utils.HTTPStatus.BAD_REQUEST, message)
 
 
 @app.route("/contributors/<string:id>", methods=["GET", "PUT", "PATCH", "DELETE"])
