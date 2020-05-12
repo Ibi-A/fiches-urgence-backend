@@ -1,4 +1,5 @@
-from app import db
+from fiches_urgence import db
+from fiches_urgence.exceptions import InvalidRequestException
 
 #   __  __  ___  ____  _____ _     ____
 #  |  \/  |/ _ \|  _ \| ____| |   / ___|
@@ -43,7 +44,7 @@ class Person(ModelMixin, db.Model):
     referringDoctors = db.relationship(
         'Resident', backref='doctor', lazy=True, foreign_keys='[Resident.referringDoctorId]')
     psychiatrists = db.relationship(
-        'Resident', backref='psychiatrist', lazy=True, foreign_keys='[Resident.psychiatrist_id]')
+        'Resident', backref='psychiatrist', lazy=True, foreign_keys='[Resident.psychiatristId]')
 
     emergencyRelationships = db.relationship(
         'EmergencyRelationship', foreign_keys='[EmergencyRelationship.personId]')
@@ -52,7 +53,7 @@ class Person(ModelMixin, db.Model):
 class City(ModelMixin, db.Model):
     id = db.Column(db.String, primary_key=True)
     name = db.Column(db.String, index=True)
-    postal_code = db.Column(db.String)
+    postalCode = db.Column(db.String)
     residents = db.relationship(
         'Resident', backref='city', lazy=True, foreign_keys='[Resident.cityId]')
 
@@ -90,7 +91,7 @@ class Resident(ModelMixin, db.Model):
         db.String, db.ForeignKey('health_mutual.id'), nullable=True)
     referringDoctorId = db.Column(
         db.String, db.ForeignKey('person.id'), nullable=True)
-    psychiatrist_id = db.Column(
+    psychiatristId = db.Column(
         db.String, db.ForeignKey('person.id'), nullable=True)
 
     emergencyRelationships = db.relationship(

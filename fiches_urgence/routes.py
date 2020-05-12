@@ -1,10 +1,12 @@
 from flask import request, Response
 from sqlalchemy.orm.exc import NoResultFound
+from sqlalchemy.exc import IntegrityError
 from marshmallow import ValidationError
 from src import utils
-from app import db, app, ma
-from app.exceptions import InvalidRequestException
-from app.models import (
+from flask import current_app as app
+from fiches_urgence import db, ma
+from fiches_urgence.exceptions import InvalidRequestException
+from fiches_urgence.models import (
     Resident,
     Person,
     EmergencyRelationship,
@@ -13,7 +15,7 @@ from app.models import (
     Contributor,
     HealthMutual
 )
-from app.schemas import (
+from fiches_urgence.schemas import (
     resident_schema, residents_schema,
     person_schema, persons_schema,
     city_schema, cities_schema,
@@ -119,7 +121,8 @@ def delete_item_by_id(model: db.Model, id: str) -> Response:
 def create_new_item(
     model: db.Model,
     schema: ma.SQLAlchemyAutoSchema,
-    payload: dict = None
+    payload: dict = None,
+    new_id: bool = True
 ) -> dict:
     """ Creates a new row of given 'model' in the DB and then returns it
     serialized 'schema'. Generates a random id when none is passed in request.
@@ -142,7 +145,7 @@ def create_new_item(
             if not payload:
                 return {"message": "No input data provided"}, 400
 
-        if not payload.get("id"):
+        if not payload.get("id") or new_id:
             payload["id"] = utils.random_id(8)
 
         # Validate and deserialize input
@@ -173,7 +176,7 @@ def person_item(id: str) -> utils.Response:
     if request.method in ["PUT", "PATCH"]:
         return update_item_by_id(Person, person_schema, id)
     if request.method == "DELETE":
-        return delete_item_by_id(model, id)
+        return delete_item_by_id(Person, id)
 
 
 @app.route("/residents", methods=["GET", "POST"])
@@ -181,7 +184,13 @@ def resident_collection() -> utils.Response:
     if request.method == "GET":
         return get_collection(Resident, residents_schema)
     if request.method == "POST":
-        return create_new_item(Resident, resident_schema)
+        try:
+            return create_new_item(Resident, resident_schema, None, False)
+        except IntegrityError as err:
+            message = {
+                "message": "id attribute should be an existing person id"
+            }
+            return utils.http_response(utils.HTTPStatus.BAD_REQUEST, message)
 
 
 @app.route("/residents/<string:id>", methods=["GET", "PUT", "PATCH", "DELETE"])
@@ -208,7 +217,7 @@ def city_item(id: str) -> utils.Response:
         return get_item_by_id(City, city_schema, id)
     if request.method in ["PUT", "PATCH"]:
         return update_item_by_id(City, city_schema, id)
-    if request.method == ["DELETE"]:
+    if request.method == "DELETE":
         return delete_item_by_id(City, id)
 
 
@@ -217,7 +226,13 @@ def contributor_collection() -> utils.Response:
     if request.method == "GET":
         return get_collection(Contributor, contributors_schema)
     if request.method == "POST":
-        return create_new_item(Contributor, contributor_schema)
+        try:
+            return create_new_item(Contributor, contributor_schema, None, False)
+        except IntegrityError as err:
+            message = {
+                "message": "id attribute should be an existing person id"
+            }
+            return utils.http_response(utils.HTTPStatus.BAD_REQUEST, message)
 
 
 @app.route("/contributors/<string:id>", methods=["GET", "PUT", "PATCH", "DELETE"])
@@ -226,7 +241,7 @@ def contributor_item(id: str) -> utils.Response:
         return get_item_by_id(Contributor, contributor_schema, id)
     if request.method in ["PUT", "PATCH"]:
         return update_item_by_id(Contributor, contributor_schema, id)
-    if request.method == ["DELETE"]:
+    if request.method == "DELETE":
         return delete_item_by_id(Contributor, id)
 
 
@@ -244,7 +259,7 @@ def health_mutual_item(id: str) -> utils.Response:
         return get_item_by_id(HealthMutual, health_mutual_schema, id)
     if request.method in ["PUT", "PATCH"]:
         return update_item_by_id(HealthMutual, health_mutual_schema, id)
-    if request.method == ["DELETE"]:
+    if request.method == "DELETE":
         return delete_item_by_id(HealthMutual, id)
 
 
@@ -266,8 +281,8 @@ def emergency_relationship(id: str) -> utils.Response:
         return utils.http_response(utils.HTTPStatus.OK, list_result)
 
 
-@app.route('/residents/<string:id>/emergency-relationships/<string:er_id>', methods=["GET", "PUT", "PATCH", "DELETE"])
-def emergency_relationship_item(id: str, er_id: str) -> utils.Response:
+@app.route('/residents/<string:_>/emergency-relationships/<string:er_id>', methods=["GET", "PUT", "PATCH", "DELETE"])
+def emergency_relationship_item(_, er_id: str) -> utils.Response:
     if request.method == "GET":
         return get_item_by_id(EmergencyRelationship, emergency_relationship_schema, er_id)
     if request.method in ["PUT", "PATCH"]:
@@ -276,7 +291,7 @@ def emergency_relationship_item(id: str, er_id: str) -> utils.Response:
             emergency_relationship_schema,
             er_id
         )
-    if request.method == ["DELETE"]:
+    if request.method == "DELETE":
         return delete_item_by_id(EmergencyRelationship, er_id)
 
 
@@ -294,17 +309,17 @@ def contributionRelationships_collection(id: str) -> utils.Response:
         return create_new_item(ContributionRelationship, contribution_relationship_schema, payload)
 
 
-@app.route('/residents/<string:id>/contribution-relationships/<string:cr_id>', methods=["GET", "PUT", "PATCH", "DELETE"])
+@app.route('/residents/<string:_>/contribution-relationships/<string:cr_id>', methods=["GET", "PUT", "PATCH", "DELETE"])
 def contribution_relationship_item(_, cr_id: str) -> utils.Response:
     if request.method == "GET":
-        return get_item_by_id(ContributionRelationship, contribution_relationship_schema, er_id)
+        return get_item_by_id(ContributionRelationship, contribution_relationship_schema, cr_id)
     if request.method in ["PUT", "PATCH"]:
         return update_item_by_id(
             ContributionRelationship,
             contribution_relationship_schema,
             cr_id
         )
-    if request.method == ["DELETE"]:
+    if request.method == "DELETE":
         return delete_item_by_id(ContributionRelationship, cr_id)
 
 
