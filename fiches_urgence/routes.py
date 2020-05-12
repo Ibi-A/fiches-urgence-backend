@@ -275,8 +275,8 @@ def emergency_relationship(id: str) -> utils.Response:
         return utils.http_response(utils.HTTPStatus.OK, list_result)
 
 
-@app.route('/residents/<string:id>/emergency-relationships/<string:er_id>', methods=["GET", "PUT", "PATCH", "DELETE"])
-def emergency_relationship_item(id: str, er_id: str) -> utils.Response:
+@app.route('/residents/<string:_>/emergency-relationships/<string:er_id>', methods=["GET", "PUT", "PATCH", "DELETE"])
+def emergency_relationship_item(_, er_id: str) -> utils.Response:
     if request.method == "GET":
         return get_item_by_id(EmergencyRelationship, emergency_relationship_schema, er_id)
     if request.method in ["PUT", "PATCH"]:
@@ -303,10 +303,10 @@ def contributionRelationships_collection(id: str) -> utils.Response:
         return create_new_item(ContributionRelationship, contribution_relationship_schema, payload)
 
 
-@app.route('/residents/<string:id>/contribution-relationships/<string:cr_id>', methods=["GET", "PUT", "PATCH", "DELETE"])
+@app.route('/residents/<string:_>/contribution-relationships/<string:cr_id>', methods=["GET", "PUT", "PATCH", "DELETE"])
 def contribution_relationship_item(_, cr_id: str) -> utils.Response:
     if request.method == "GET":
-        return get_item_by_id(ContributionRelationship, contribution_relationship_schema, er_id)
+        return get_item_by_id(ContributionRelationship, contribution_relationship_schema, cr_id)
     if request.method in ["PUT", "PATCH"]:
         return update_item_by_id(
             ContributionRelationship,
