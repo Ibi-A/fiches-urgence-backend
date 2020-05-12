@@ -32,7 +32,7 @@ class TestEmergencyRelationship(TestApi):
 
     def setUp(self):
         """ Overloads setUp method to automatically create a new Person
-        and a Resident """
+        and a new Resident """
         super(TestEmergencyRelationship, self).setUp()
         res_person = client.post('/persons', json=PERSON)
         RESIDENT["id"] = PERSON["id"] = res_person.json["id"]
@@ -74,17 +74,17 @@ class TestEmergencyRelationship(TestApi):
             f"/residents/{RESIDENT['id']}/emergency-relationships",
             json=EMERGENCY_RELATIONSHIP
         )
-        new_emergency_relationsship = {
+        new_emergency_relationship = {
             "relationship": "friend"
         }
         res = client.put(
             f"/residents/{RESIDENT['id']}/emergency-relationships/{res_post.json['id']}",
-            json=new_emergency_relationsship
+            json=new_emergency_relationship
         )
         eq_(200, res.status_code)
         eq_(
             True,
-            is_dict_subset_of_superset(new_emergency_relationsship, res.json)
+            is_dict_subset_of_superset(new_emergency_relationship, res.json)
         )
 
     # ---------------- DELETE ----------------
