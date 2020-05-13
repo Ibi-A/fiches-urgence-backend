@@ -129,4 +129,4 @@ dmypy.json
 .pyre/
 
 # DB instances
-db_instances/
+db_instances/*
