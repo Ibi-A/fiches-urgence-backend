@@ -1,4 +1,4 @@
-from marshmallow import Schema, fields, ValidationError, post_load
+from marshmallow import fields, ValidationError, post_load
 from fiches_urgence import ma
 from fiches_urgence.models import (
     Resident,

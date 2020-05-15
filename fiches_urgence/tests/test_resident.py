@@ -1,5 +1,3 @@
-from fiches_urgence.models import Person, Resident
-from fiches_urgence import db
 from config_test import TestApi, client, is_dict_subset_of_superset
 from nose.tools import eq_, ok_
 
@@ -78,7 +76,7 @@ class TestResident(TestApi):
         new_resident = {
             'referringDoctorId': res_post_doctor.json["id"],
         }
-        res_put = client.put(
+        client.put(
             f'/residents/{res_resident_post.json["id"]}', json=new_resident)
 
         # Check if doctor attribute is created, and with right values
@@ -103,7 +101,7 @@ class TestResident(TestApi):
         new_resident = {
             'psychiatristId': res_post_psychiatrist.json["id"],
         }
-        res_put = client.put(
+        client.put(
             f'/residents/{res_resident_post.json["id"]}', json=new_resident)
 
         # Check if psychiatrist attribute is created, and with right values
@@ -128,7 +126,7 @@ class TestResident(TestApi):
 
     # ---------------- PUT ----------------
     def test_put_resident(self):
-        res_post = client.post('/residents', json=RESIDENT)
+        client.post('/residents', json=RESIDENT)
 
         new_resident = {
             'birthplace': "birthplace",

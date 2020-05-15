@@ -1,7 +1,5 @@
-from fiches_urgence.models import Person
-from fiches_urgence import db
 from config_test import TestApi, client, is_dict_subset_of_superset
-from nose.tools import eq_, ok_
+from nose.tools import eq_
 
 #    ___ ___  _  _ _____ ___ ___ ___ _   _ _____ ___ ___  _  _
 #   / __/ _ \| \| |_   _| _ \_ _| _ ) | | |_   _|_ _/ _ \| \| |
@@ -36,10 +34,10 @@ class TestContributionRelationship(TestApi):
         super(TestContributionRelationship, self).setUp()
         res_person = client.post('/persons', json=PERSON)
         RESIDENT["id"] = PERSON["id"] = res_person.json["id"]
-        res_resident = client.post('/residents', json=RESIDENT)
-
+        client.post('/residents', json=RESIDENT)
 
     # ---------------- GET ----------------
+
     def test_get_empty(self):
         res = client.get(
             f'/residents/{RESIDENT["id"]}/contribution-relationships')
@@ -56,9 +54,11 @@ class TestContributionRelationship(TestApi):
             f'/residents/{RESIDENT["id"]}/contribution-relationships',
             json=CONTRIBUTION_RELATIONSHIP
         )
+        cr_id = res_post.json["id"]
         res = client.get(
-            f'/residents/{RESIDENT["id"]}/contribution-relationships/{res_post.json["id"]}')
-        eq_(True, is_dict_subset_of_superset(CONTRIBUTION_RELATIONSHIP, res.json))
+            f'residents/{RESIDENT["id"]}/contribution-relationships/{cr_id}')
+        eq_(True, is_dict_subset_of_superset(
+            CONTRIBUTION_RELATIONSHIP, res.json))
 
     # ---------------- POST ----------------
     def test_post_contribution_relationship(self):
@@ -67,7 +67,8 @@ class TestContributionRelationship(TestApi):
             json=CONTRIBUTION_RELATIONSHIP
         )
         eq_(201, res.status_code)
-        eq_(True, is_dict_subset_of_superset(CONTRIBUTION_RELATIONSHIP, res.json))
+        eq_(True, is_dict_subset_of_superset(
+            CONTRIBUTION_RELATIONSHIP, res.json))
 
     # ---------------- PUT ----------------
     def test_put_contribution_relationship(self):
@@ -75,11 +76,12 @@ class TestContributionRelationship(TestApi):
             f"/residents/{RESIDENT['id']}/contribution-relationships",
             json=CONTRIBUTION_RELATIONSHIP
         )
+        cr_id = res_post.json['id']
         new_contribution_relationship = {
             "socialAdvising": False
         }
         res = client.put(
-            f"/residents/{RESIDENT['id']}/contribution-relationships/{res_post.json['id']}",
+            f"residents/{RESIDENT['id']}/contribution-relationships/{cr_id}",
             json=new_contribution_relationship
         )
         eq_(200, res.status_code)
@@ -94,6 +96,9 @@ class TestContributionRelationship(TestApi):
             f"/residents/{RESIDENT['id']}/contribution-relationships",
             json=CONTRIBUTION_RELATIONSHIP
         )
+        cr_id = res.json['id']
+
         res = client.delete(
-            f"/residents/{RESIDENT['id']}/contribution-relationships/{res.json['id']}")
+            f"residents/{RESIDENT['id']}/contribution-relationships/{cr_id}"
+        )
         eq_(204, res.status_code)

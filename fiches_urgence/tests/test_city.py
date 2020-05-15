@@ -1,7 +1,5 @@
-from fiches_urgence.models import City
-from fiches_urgence import db
 from config_test import TestApi, client
-from nose.tools import eq_, ok_
+from nose.tools import eq_
 
 #    ___ ___ _______   __
 #   / __|_ _|_   _\ \ / /

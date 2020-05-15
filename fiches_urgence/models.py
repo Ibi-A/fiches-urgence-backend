@@ -17,7 +17,7 @@ class ModelMixin(object):
             new_values (dict): New values to update the object with
         Returns:
             db.Model: the updated db.Model object
-        Raises: 
+        Raises:
             InvalidRequestException: If there is key 'id' in 'new_values'.
         """
         if new_values.get("id"):
@@ -38,16 +38,34 @@ class Person(ModelMixin, db.Model):
     alternativePhoneNumber = db.Column(db.String)
 
     contributors = db.relationship(
-        'Contributor', backref='person', lazy=True, foreign_keys='[Contributor.id]')
+        'Contributor',
+        backref='person',
+        lazy=True,
+        foreign_keys='[Contributor.id]'
+    )
     residents = db.relationship(
-        'Resident', backref='person', lazy=True, foreign_keys='[Resident.id]')
+        'Resident',
+        backref='person',
+        lazy=True,
+        foreign_keys='[Resident.id]'
+    )
     referringDoctors = db.relationship(
-        'Resident', backref='doctor', lazy=True, foreign_keys='[Resident.referringDoctorId]')
+        'Resident',
+        backref='doctor',
+        lazy=True,
+        foreign_keys='[Resident.referringDoctorId]'
+    )
     psychiatrists = db.relationship(
-        'Resident', backref='psychiatrist', lazy=True, foreign_keys='[Resident.psychiatristId]')
+        'Resident',
+        backref='psychiatrist',
+        lazy=True,
+        foreign_keys='[Resident.psychiatristId]'
+    )
 
     emergencyRelationships = db.relationship(
-        'EmergencyRelationship', foreign_keys='[EmergencyRelationship.personId]')
+        'EmergencyRelationship',
+        foreign_keys='[EmergencyRelationship.personId]'
+    )
 
 
 class City(ModelMixin, db.Model):
@@ -55,14 +73,20 @@ class City(ModelMixin, db.Model):
     name = db.Column(db.String, index=True)
     postalCode = db.Column(db.String)
     residents = db.relationship(
-        'Resident', backref='city', lazy=True, foreign_keys='[Resident.cityId]')
+        'Resident',
+        backref='city',
+        lazy=True,
+        foreign_keys='[Resident.cityId]'
+    )
 
 
 class Contributor(ModelMixin, db.Model):
     id = db.Column(db.String, db.ForeignKey('person.id'), primary_key=True)
     role = db.Column(db.String, nullable=True)
     contributionRelationships = db.relationship(
-        'ContributionRelationship', foreign_keys='[ContributionRelationship.contributorId]')
+        'ContributionRelationship',
+        foreign_keys='[ContributionRelationship.contributorId]'
+    )
 
 
 class HealthMutual(ModelMixin, db.Model):
@@ -72,8 +96,12 @@ class HealthMutual(ModelMixin, db.Model):
     mainPhoneNumber = db.Column(db.String)
     alternativePhoneNumber = db.Column(db.String)
 
-    residents = db.relationship('Resident', backref='health_mutual',
-                                lazy=True, foreign_keys='[Resident.healthMutualId]')
+    residents = db.relationship(
+        'Resident',
+        backref='health_mutual',
+        lazy=True,
+        foreign_keys='[Resident.healthMutualId]'
+    )
 
 
 class Resident(ModelMixin, db.Model):
@@ -95,9 +123,13 @@ class Resident(ModelMixin, db.Model):
         db.String, db.ForeignKey('person.id'), nullable=True)
 
     emergencyRelationships = db.relationship(
-        'EmergencyRelationship', foreign_keys='[EmergencyRelationship.residentId]')
+        'EmergencyRelationship',
+        foreign_keys='[EmergencyRelationship.residentId]'
+    )
     contributionRelationships = db.relationship(
-        'ContributionRelationship', foreign_keys='[ContributionRelationship.residentId]')
+        'ContributionRelationship',
+        foreign_keys='[ContributionRelationship.residentId]'
+    )
 
 
 class EmergencyRelationship(ModelMixin, db.Model):
@@ -114,4 +146,3 @@ class ContributionRelationship(ModelMixin, db.Model):
     socialAdvising = db.Column(db.Boolean)
     residentId = db.Column(db.String, db.ForeignKey(
         'resident.id'))
-

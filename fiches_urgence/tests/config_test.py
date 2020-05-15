@@ -1,9 +1,6 @@
-from fiches_urgence import create_app, db, config
-from flask_testing import TestCase
-import unittest
-import logging
 import os
-from nose.tools import eq_, ok_
+from flask_testing import TestCase
+from fiches_urgence import create_app, db, config
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 
@@ -21,23 +18,19 @@ class TestApi(TestCase):
 
     def create_app(self):
         """
-        Instructs Flask to run these commands when we request this group of tests to be run.
+        Instructs Flask to run these commands when we request this group of 
+        tests to be run.
         """
         app = create_app()
-        
         app.config.from_object(config.ConfigTest)
-        SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
-            'sqlite:///' + os.path.join(basedir, 'db_instances', 'test.db')
-        SQLALCHEMY_TRACK_MODIFICATIONS = False
-
         return app
 
     def setUp(self):
-        """Defines what should be done before every single test in this test group."""
+        """Defines what should be done before every single test"""
         db.create_all()
 
     def tearDown(self):
-        """Defines what should be done after every single test in this test group."""
+        """Defines what should be done after every single test"""
         db.session.remove()
         db.drop_all()
 
