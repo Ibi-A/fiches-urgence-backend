@@ -18,7 +18,7 @@ class TestApi(TestCase):
 
     def create_app(self):
         """
-        Instructs Flask to run these commands when we request this group of 
+        Instructs Flask to run these commands when we request this group of
         tests to be run.
         """
         app = create_app()
