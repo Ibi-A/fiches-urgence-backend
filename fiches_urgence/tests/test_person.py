@@ -1,7 +1,5 @@
-from fiches_urgence.models import Person
-from fiches_urgence import db
 from config_test import TestApi, client
-from nose.tools import eq_, ok_
+from nose.tools import eq_
 
 #   ___ ___ ___  ___  ___  _  _
 #  | _ \ __| _ \/ __|/ _ \| \| |

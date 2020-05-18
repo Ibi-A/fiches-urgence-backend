@@ -1,5 +1,3 @@
-from fiches_urgence.models import Contributor
-from fiches_urgence import db
 from nose.tools import eq_, ok_
 from config_test import TestApi, client, is_dict_subset_of_superset
 
@@ -66,7 +64,7 @@ class TestContributor(TestApi):
 
     # ---------------- PUT ----------------
     def test_put_contributor(self):
-        res_post = client.post('/contributors', json=CONTRIBUTOR)
+        client.post('/contributors', json=CONTRIBUTOR)
 
         new_contributor = {
             "role": "otherRole"

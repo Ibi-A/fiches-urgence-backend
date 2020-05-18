@@ -1,7 +1,5 @@
-from fiches_urgence.models import Person
-from fiches_urgence import db
 from config_test import TestApi, client, is_dict_subset_of_superset
-from nose.tools import eq_, ok_
+from nose.tools import eq_
 
 #   ___ __  __ ___ ___  ___ ___ _  _  _____   __
 #  | __|  \/  | __| _ \/ __| __| \| |/ __\ \ / /
@@ -36,7 +34,7 @@ class TestEmergencyRelationship(TestApi):
         super(TestEmergencyRelationship, self).setUp()
         res_person = client.post('/persons', json=PERSON)
         RESIDENT["id"] = PERSON["id"] = res_person.json["id"]
-        res_resident = client.post('/residents', json=RESIDENT)
+        client.post('/residents', json=RESIDENT)
 
     # ---------------- GET ----------------
     def test_get_empty(self):
@@ -55,8 +53,9 @@ class TestEmergencyRelationship(TestApi):
             f'/residents/{RESIDENT["id"]}/emergency-relationships',
             json=EMERGENCY_RELATIONSHIP
         )
+        er_id = res_post.json["id"]
         res = client.get(
-            f'/residents/{RESIDENT["id"]}/emergency-relationships/{res_post.json["id"]}')
+            f'/residents/{RESIDENT["id"]}/emergency-relationships/{er_id}')
         eq_(True, is_dict_subset_of_superset(EMERGENCY_RELATIONSHIP, res.json))
 
     # ---------------- POST ----------------
@@ -74,11 +73,13 @@ class TestEmergencyRelationship(TestApi):
             f"/residents/{RESIDENT['id']}/emergency-relationships",
             json=EMERGENCY_RELATIONSHIP
         )
+        er_id = res_post.json["id"]
+
         new_emergency_relationship = {
             "relationship": "friend"
         }
         res = client.put(
-            f"/residents/{RESIDENT['id']}/emergency-relationships/{res_post.json['id']}",
+            f"/residents/{RESIDENT['id']}/emergency-relationships/{er_id}",
             json=new_emergency_relationship
         )
         eq_(200, res.status_code)
@@ -93,6 +94,8 @@ class TestEmergencyRelationship(TestApi):
             f"/residents/{RESIDENT['id']}/emergency-relationships",
             json=EMERGENCY_RELATIONSHIP
         )
+        er_id = res.json["id"]
+
         res = client.delete(
-            f"/residents/{RESIDENT['id']}/emergency-relationships/{res.json['id']}")
+            f"/residents/{RESIDENT['id']}/emergency-relationships/{er_id}")
         eq_(204, res.status_code)

@@ -34,12 +34,13 @@ from fiches_urgence.schemas import (
 # Generic CRUD functions
 
 def get_collection(model: db.Model, schema: ma.SQLAlchemyAutoSchema) -> list:
-    """ Gets a list of rows of given 'model' in the DB and then 
+    """ Gets a list of rows of given 'model' in the DB and then
     serializes it with the given 'schema'.
 
     Args:
         model (db.Model): the type of rows expected
-        schema (ma.SQLAlchemyAutoSchema): the schema to serialize your model rows with
+        schema (ma.SQLAlchemyAutoSchema): the schema to serialize your model
+        rows with
     Returns:
         Response: HTTP status code and list of serialized rows in JSON
     """
@@ -48,13 +49,18 @@ def get_collection(model: db.Model, schema: ma.SQLAlchemyAutoSchema) -> list:
     return utils.http_response(utils.HTTPStatus.OK, list_result)
 
 
-def get_item_by_id(model: db.Model, schema: ma.SQLAlchemyAutoSchema, id: str) -> Response:
-    """ Gets a single row with given 'id' of given 'model' in the DB and then 
+def get_item_by_id(
+    model: db.Model,
+    schema: ma.SQLAlchemyAutoSchema,
+    id: str
+) -> Response:
+    """ Gets a single row with given 'id' of given 'model' in the DB and then
     serializes it with the given 'schema'.
 
     Args:
         model (db.Model): the type of row expected
-        schema (ma.SQLAlchemyAutoSchema): the schema to serialize your model row with
+        schema (ma.SQLAlchemyAutoSchema): the schema to serialize your model
+        row with
         id (str): the id of the row expected
 
     Returns:
@@ -68,14 +74,19 @@ def get_item_by_id(model: db.Model, schema: ma.SQLAlchemyAutoSchema, id: str) ->
     return utils.http_response(utils.HTTPStatus.OK, item_result)
 
 
-def update_item_by_id(model: db.Model, schema: ma.SQLAlchemyAutoSchema, id: str) -> Response:
-    """Updates a single row with given 'id' of given 'model' in the DB and then 
+def update_item_by_id(
+    model: db.Model,
+    schema: ma.SQLAlchemyAutoSchema,
+    id: str
+) -> Response:
+    """Updates a single row with given 'id' of given 'model' in the DB and then
     serializes it with the given 'schema'.
     Tipycally for PUT or PATCH API methods
 
     Args:
         model (db.Model): the type of row expected
-        schema (ma.SQLAlchemyAutoSchema): the schema to serialize your model row with
+        schema (ma.SQLAlchemyAutoSchema): the schema to serialize your model
+        row with
         id (str): the id of the row expected to b updated
 
     Returns:
@@ -107,7 +118,8 @@ def delete_item_by_id(model: db.Model, id: str) -> Response:
 
     Args:
         model (db.Model): the type of row expected
-        schema (ma.SQLAlchemyAutoSchema): the schema to serialize your model row with
+        schema (ma.SQLAlchemyAutoSchema): the schema to serialize your model
+        row with
         id (str): the id of the row expected
 
     Returns:
@@ -130,10 +142,11 @@ def create_new_item(
 
     Args:
         model (db.Model): the type of row expected
-        schema (ma.SQLAlchemyAutoSchema): the schema to serialize your model row with
+        schema (ma.SQLAlchemyAutoSchema): the schema to serialize your model
+        row with
         payload (dict, optional): Attributes and values used to create the item
-            Defaults to None, in that case the payload will be the parameters 
-            passed through the request 
+            Defaults to None, in that case the payload will be the parameters
+            passed through the request
     Returns:
         dict: serialized new row in JSON
     """
@@ -186,7 +199,7 @@ def resident_collection() -> utils.Response:
     if request.method == "POST":
         try:
             return create_new_item(Resident, resident_schema, None, False)
-        except IntegrityError as err:
+        except IntegrityError:
             message = {
                 "message": "id attribute should be an existing person id"
             }
@@ -227,15 +240,21 @@ def contributor_collection() -> utils.Response:
         return get_collection(Contributor, contributors_schema)
     if request.method == "POST":
         try:
-            return create_new_item(Contributor, contributor_schema, None, False)
-        except IntegrityError as err:
+            return create_new_item(
+                Contributor,
+                contributor_schema,
+                payload=None,
+                new_id=False
+            )
+        except IntegrityError:
             message = {
                 "message": "id attribute should be an existing person id"
             }
             return utils.http_response(utils.HTTPStatus.BAD_REQUEST, message)
 
 
-@app.route("/contributors/<string:id>", methods=["GET", "PUT", "PATCH", "DELETE"])
+@app.route("/contributors/<string:id>",
+           methods=["GET", "PUT", "PATCH", "DELETE"])
 def contributor_item(id: str) -> utils.Response:
     if request.method == "GET":
         return get_item_by_id(Contributor, contributor_schema, id)
@@ -253,7 +272,8 @@ def health_mutual_collection() -> utils.Response:
         return create_new_item(HealthMutual, health_mutual_schema)
 
 
-@app.route("/health-mutuals/<string:id>", methods=["GET", "PUT", "PATCH", "DELETE"])
+@app.route("/health-mutuals/<string:id>",
+           methods=["GET", "PUT", "PATCH", "DELETE"])
 def health_mutual_item(id: str) -> utils.Response:
     if request.method == "GET":
         return get_item_by_id(HealthMutual, health_mutual_schema, id)
@@ -263,7 +283,8 @@ def health_mutual_item(id: str) -> utils.Response:
         return delete_item_by_id(HealthMutual, id)
 
 
-@app.route('/residents/<string:id>/emergency-relationships', methods=["GET", "POST"])
+@app.route('/residents/<string:id>/emergency-relationships',
+           methods=["GET", "POST"])
 def emergency_relationship(id: str) -> utils.Response:
     if request.method == "POST":
         payload = request.get_json()
@@ -281,10 +302,15 @@ def emergency_relationship(id: str) -> utils.Response:
         return utils.http_response(utils.HTTPStatus.OK, list_result)
 
 
-@app.route('/residents/<string:_>/emergency-relationships/<string:er_id>', methods=["GET", "PUT", "PATCH", "DELETE"])
+@app.route('/residents/<string:_>/emergency-relationships/<string:er_id>',
+           methods=["GET", "PUT", "PATCH", "DELETE"])
 def emergency_relationship_item(_, er_id: str) -> utils.Response:
     if request.method == "GET":
-        return get_item_by_id(EmergencyRelationship, emergency_relationship_schema, er_id)
+        return get_item_by_id(
+            EmergencyRelationship,
+            emergency_relationship_schema,
+            er_id
+        )
     if request.method in ["PUT", "PATCH"]:
         return update_item_by_id(
             EmergencyRelationship,
@@ -295,7 +321,8 @@ def emergency_relationship_item(_, er_id: str) -> utils.Response:
         return delete_item_by_id(EmergencyRelationship, er_id)
 
 
-@app.route('/residents/<string:id>/contribution-relationships', methods=["GET", "POST"])
+@app.route('/residents/<string:id>/contribution-relationships',
+           methods=["GET", "POST"])
 def contributionRelationships_collection(id: str) -> utils.Response:
     if request.method == "GET":
         er_collection = ContributionRelationship.query.filter_by(
@@ -306,13 +333,22 @@ def contributionRelationships_collection(id: str) -> utils.Response:
     if request.method == "POST":
         payload = request.get_json()
         payload["residentId"] = id
-        return create_new_item(ContributionRelationship, contribution_relationship_schema, payload)
+        return create_new_item(
+            ContributionRelationship,
+            contribution_relationship_schema,
+            payload
+        )
 
 
-@app.route('/residents/<string:_>/contribution-relationships/<string:cr_id>', methods=["GET", "PUT", "PATCH", "DELETE"])
+@app.route('/residents/<string:_>/contribution-relationships/<string:cr_id>',
+           methods=["GET", "PUT", "PATCH", "DELETE"])
 def contribution_relationship_item(_, cr_id: str) -> utils.Response:
     if request.method == "GET":
-        return get_item_by_id(ContributionRelationship, contribution_relationship_schema, cr_id)
+        return get_item_by_id(
+            ContributionRelationship,
+            contribution_relationship_schema,
+            cr_id
+        )
     if request.method in ["PUT", "PATCH"]:
         return update_item_by_id(
             ContributionRelationship,
